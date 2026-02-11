@@ -31,6 +31,7 @@ const i18nPrefix = computed(() => analysisType.value);
 const analysisText = ref('');
 const displayedText = ref('');
 const isLoading = ref(true);
+const hasContent = ref(false); // true once first meaningful text arrives
 const error = ref<string | null>(null);
 const progress = ref(0);
 const loadingMessage = ref('');
@@ -98,6 +99,7 @@ const startStreaming = async () => {
   displayedText.value = ''; // Clear displayed text
   error.value = null; // Clear previous errors
   isLoading.value = true; // Set loading state
+  hasContent.value = false; // Reset content flag
   progress.value = 0; // Reset progress
 
   const { chartId } = chartStore;
@@ -182,8 +184,23 @@ const startStreaming = async () => {
             }
 
             if (data.text) {
-              analysisText.value += data.text;
-              displayedText.value = analysisText.value;
+              // Filter out backend loading prefix (not part of actual analysis)
+              const loadingPrefixes = [
+                '好我看看～讓我仔細分析一下你的命盤...\n\n',
+                'Let me see~ I am analyzing your chart carefully...\n\n',
+              ];
+              const isLoadingPrefix = loadingPrefixes.some(
+                (prefix) => data.text === prefix,
+              );
+
+              if (!isLoadingPrefix) {
+                analysisText.value += data.text;
+                displayedText.value = analysisText.value;
+                // Show content area as soon as first real text arrives
+                if (!hasContent.value && analysisText.value.trim().length > 0) {
+                  hasContent.value = true;
+                }
+              }
               progress.value = Math.min(progress.value + 2, 95);
             }
           } catch {
@@ -353,11 +370,11 @@ onUnmounted(() => {
               </div>
             </div>
 
-            <!-- 載入中 (骨架屏) -->
-            <AnalysisSkeleton v-if="isLoading" />
+            <!-- 載入中 (骨架屏) — 僅在無內容時顯示 -->
+            <AnalysisSkeleton v-if="isLoading && !hasContent" />
 
-            <!-- 分析內容 -->
-            <div v-else class="analysis-content">
+            <!-- 分析內容 — 串流期間即時顯示 -->
+            <div v-if="hasContent || !isLoading" class="analysis-content">
               <!-- Markdown 渲染 -->
               <!-- eslint-disable-next-line vue/no-v-html -->
               <div
@@ -366,9 +383,15 @@ onUnmounted(() => {
                 v-html="renderMarkdown(displayedText)"
               />
 
+              <!-- 串流進行中指示器 -->
+              <div v-if="isLoading && hasContent" class="streaming-indicator">
+                <span class="streaming-dot" />
+                <span class="streaming-text">{{ $t(`${i18nPrefix}.loading_message`) || '分析撰寫中…' }}</span>
+              </div>
+
               <!-- 快取指示器 -->
               <CacheIndicator
-                v-if="isCached && cacheTimestamp"
+                v-if="!isLoading && isCached && cacheTimestamp"
                 :timestamp="cacheTimestamp"
                 :analysis-type="analysisType"
                 @refresh="startStreaming"
@@ -581,6 +604,33 @@ html.dark .error-card {
   border-radius: var(--radius-lg) !important;
 }
 
+/* ========== 串流指示器 ========== */
+.streaming-indicator {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-lg) 0;
+  color: var(--peixuan-purple);
+  font-size: var(--font-size-sm);
+}
+
+.streaming-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--peixuan-purple);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+.streaming-text {
+  opacity: 0.8;
+}
+
 /* ========== 分析內容 ========== */
 .analysis-content {
   line-height: 1.8;
@@ -592,6 +642,7 @@ html.dark .error-card {
   color: var(--text-primary);
   max-width: 65ch; /* 最佳閱讀寬度 */
   letter-spacing: 0.01em;
+  text-align: left; /* 覆蓋 #app 的 text-align: center */
 }
 
 /* ========== 段落 ========== */
