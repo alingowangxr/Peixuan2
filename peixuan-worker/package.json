@@ -3,6 +3,7 @@
 	"version": "0.0.0",
 	"private": true,
 	"scripts": {
+		"dev": "npx wrangler dev",
 		"build": "esbuild src/index.ts --bundle --format=esm --outfile=dist/index.js --platform=neutral --conditions=workerd,worker --external:cloudflare:* --external:@cloudflare/kv-asset-handler",
 		"deploy:staging": "npm run build && wrangler deploy --env staging",
 		"deploy:production": "npm run build && wrangler deploy --env production",
@@ -22,6 +23,7 @@
 		"@typescript-eslint/parser": "^8.18.2",
 		"esbuild": "^0.27.2",
 		"eslint": "^9.17.0",
+		"iztro": "^2.5.7",
 		"typescript": "^5.5.2",
 		"vitest": "~3.2.0",
 		"wrangler": "^4.51.0"

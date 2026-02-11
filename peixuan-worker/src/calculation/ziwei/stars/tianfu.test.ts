@@ -1,6 +1,9 @@
 /**
  * TianFu Star Positioning Module Tests
- * Comprehensive test coverage for symmetry logic
+ * Comprehensive test coverage for 寅-申 axis mirror symmetry
+ *
+ * TianFu mirrors ZiWei across the 寅(2)-申(8) axis.
+ * Formula: P_tianfu = (4 - P_ziwei + 12) mod 12
  */
 
 import { describe, it, expect } from 'vitest';
@@ -12,34 +15,34 @@ import {
 
 describe('TianFu Star Positioning', () => {
   describe('findTianFuPosition', () => {
-    it('should calculate TianFu position opposite to ZiWei', () => {
-      // Test symmetry relationship
-      // ZiWei at 寅 (2) -> TianFu at 申 (8)
-      expect(findTianFuPosition(2)).toBe(8);
+    it('should calculate TianFu position mirrored across 寅-申 axis', () => {
+      // ZiWei at 寅 (2) -> TianFu at 寅 (2) — axis point, maps to itself
+      expect(findTianFuPosition(2)).toBe(2);
 
-      // ZiWei at 申 (8) -> TianFu at 寅 (2)
-      expect(findTianFuPosition(8)).toBe(2);
+      // ZiWei at 申 (8) -> TianFu at 申 (8) — axis point, maps to itself
+      expect(findTianFuPosition(8)).toBe(8);
 
-      // ZiWei at 子 (0) -> TianFu at 午 (6)
-      expect(findTianFuPosition(0)).toBe(6);
+      // ZiWei at 子 (0) -> TianFu at 辰 (4)
+      expect(findTianFuPosition(0)).toBe(4);
 
-      // ZiWei at 午 (6) -> TianFu at 子 (0)
-      expect(findTianFuPosition(6)).toBe(0);
+      // ZiWei at 午 (6) -> TianFu at 戌 (10)
+      expect(findTianFuPosition(6)).toBe(10);
     });
 
     it('should handle all 12 palace positions correctly', () => {
+      // Formula: (4 - ziwei + 12) % 12
       const expectedPositions = [
-        { ziwei: 0, tianfu: 6 },   // 子 -> 午
-        { ziwei: 1, tianfu: 7 },   // 丑 -> 未
-        { ziwei: 2, tianfu: 8 },   // 寅 -> 申
-        { ziwei: 3, tianfu: 9 },   // 卯 -> 酉
-        { ziwei: 4, tianfu: 10 },  // 辰 -> 戌
+        { ziwei: 0, tianfu: 4 },   // 子 -> 辰
+        { ziwei: 1, tianfu: 3 },   // 丑 -> 卯
+        { ziwei: 2, tianfu: 2 },   // 寅 -> 寅 (axis)
+        { ziwei: 3, tianfu: 1 },   // 卯 -> 丑
+        { ziwei: 4, tianfu: 0 },   // 辰 -> 子
         { ziwei: 5, tianfu: 11 },  // 巳 -> 亥
-        { ziwei: 6, tianfu: 0 },   // 午 -> 子
-        { ziwei: 7, tianfu: 1 },   // 未 -> 丑
-        { ziwei: 8, tianfu: 2 },   // 申 -> 寅
-        { ziwei: 9, tianfu: 3 },   // 酉 -> 卯
-        { ziwei: 10, tianfu: 4 },  // 戌 -> 辰
+        { ziwei: 6, tianfu: 10 },  // 午 -> 戌
+        { ziwei: 7, tianfu: 9 },   // 未 -> 酉
+        { ziwei: 8, tianfu: 8 },   // 申 -> 申 (axis)
+        { ziwei: 9, tianfu: 7 },   // 酉 -> 未
+        { ziwei: 10, tianfu: 6 },  // 戌 -> 午
         { ziwei: 11, tianfu: 5 }   // 亥 -> 巳
       ];
 
@@ -49,11 +52,10 @@ describe('TianFu Star Positioning', () => {
     });
 
     it('should maintain inverse property (double application returns original)', () => {
-      // Applying TianFu calculation twice should return to original position
+      // Mirror symmetry: applying the same mirror twice returns to original
       for (let i = 0; i < 12; i++) {
         const tianfu = findTianFuPosition(i);
         const backToOriginal = findTianFuPosition(tianfu);
-        // Due to the +6 offset, applying twice gives (x + 6 + 6) % 12 = x
         expect(backToOriginal).toBe(i);
       }
     });
@@ -82,25 +84,25 @@ describe('TianFu Star Positioning', () => {
 
   describe('calculateTianFuPosition', () => {
     it('should return position and branch for TianFu', () => {
-      // ZiWei at 寅 (2) -> TianFu at 申 (8)
+      // ZiWei at 寅 (2) -> TianFu at 寅 (2) — axis point
       const result = calculateTianFuPosition(2);
-      expect(result.position).toBe(8);
-      expect(result.branch).toBe('申');
+      expect(result.position).toBe(2);
+      expect(result.branch).toBe('寅');
     });
 
     it('should handle all 12 positions with correct branches', () => {
       const testCases = [
-        { ziwei: 0, position: 6, branch: '午' },
-        { ziwei: 1, position: 7, branch: '未' },
-        { ziwei: 2, position: 8, branch: '申' },
-        { ziwei: 3, position: 9, branch: '酉' },
-        { ziwei: 4, position: 10, branch: '戌' },
+        { ziwei: 0, position: 4, branch: '辰' },
+        { ziwei: 1, position: 3, branch: '卯' },
+        { ziwei: 2, position: 2, branch: '寅' },
+        { ziwei: 3, position: 1, branch: '丑' },
+        { ziwei: 4, position: 0, branch: '子' },
         { ziwei: 5, position: 11, branch: '亥' },
-        { ziwei: 6, position: 0, branch: '子' },
-        { ziwei: 7, position: 1, branch: '丑' },
-        { ziwei: 8, position: 2, branch: '寅' },
-        { ziwei: 9, position: 3, branch: '卯' },
-        { ziwei: 10, position: 4, branch: '辰' },
+        { ziwei: 6, position: 10, branch: '戌' },
+        { ziwei: 7, position: 9, branch: '酉' },
+        { ziwei: 8, position: 8, branch: '申' },
+        { ziwei: 9, position: 7, branch: '未' },
+        { ziwei: 10, position: 6, branch: '午' },
         { ziwei: 11, position: 5, branch: '巳' }
       ];
 
@@ -112,40 +114,29 @@ describe('TianFu Star Positioning', () => {
     });
   });
 
-  describe('Integration: TianFu-ZiWei opposition verification', () => {
-    it('should verify opposition pairs (6 positions apart)', () => {
-      // With formula (x + 6) % 12, positions are 6 positions apart (opposite)
-
-      // Test pairs that are opposite (6 positions apart)
-      const oppositionPairs = [
-        [0, 6],   // 子-午
-        [1, 7],   // 丑-未
-        [2, 8],   // 寅-申
-        [3, 9],   // 卯-酉
-        [4, 10],  // 辰-戌
-        [5, 11]   // 巳-亥
+  describe('Integration: TianFu-ZiWei mirror symmetry verification', () => {
+    it('should verify mirror pairs across 寅-申 axis', () => {
+      // Mirror pairs: positions equidistant from the 寅(2)-申(8) axis
+      const mirrorPairs = [
+        [0, 4],   // 子-辰 (each 2 away from axis point 寅)
+        [1, 3],   // 丑-卯 (each 1 away from axis point 寅)
+        [2, 2],   // 寅-寅 (axis point)
+        [5, 11],  // 巳-亥 (each 3 away from axis points)
+        [6, 10],  // 午-戌
+        [7, 9],   // 未-酉
+        [8, 8],   // 申-申 (axis point)
       ];
 
-      oppositionPairs.forEach(([pos1, pos2]) => {
-        const tianfu1 = findTianFuPosition(pos1);
-        const tianfu2 = findTianFuPosition(pos2);
-
-        // If ZiWei at pos1 gives TianFu at tianfu1,
-        // then tianfu1 should equal pos2
-        expect(tianfu1).toBe(pos2);
-        expect(tianfu2).toBe(pos1);
-
-        // Verify inverse property
-        expect(findTianFuPosition(tianfu1)).toBe(pos1);
-        expect(findTianFuPosition(tianfu2)).toBe(pos2);
+      mirrorPairs.forEach(([pos1, pos2]) => {
+        expect(findTianFuPosition(pos1)).toBe(pos2);
+        expect(findTianFuPosition(pos2)).toBe(pos1);
       });
     });
 
-    it('should verify all positions are exactly 6 positions apart', () => {
-      // Every ZiWei position should map to a TianFu position exactly 6 steps away
+    it('should satisfy the mirror formula for all positions', () => {
       for (let i = 0; i < 12; i++) {
         const tianfu = findTianFuPosition(i);
-        expect(tianfu).toBe((i + 6) % 12);
+        expect(tianfu).toBe(((4 - i) % 12 + 12) % 12);
       }
     });
   });

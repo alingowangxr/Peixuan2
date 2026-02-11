@@ -48,7 +48,10 @@ export function calculateLifePalace(
 
 /**
  * Calculate Body Palace position
- * Formula: P_body = (M + H - 1) mod 12
+ * Formula: P_body = (M + H + 1) mod 12
+ *
+ * The body palace advances from 寅 by (month + hour) steps.
+ * With 1-based month and 0-based hour branch: position = (M + H + 1) mod 12.
  *
  * @param lunarMonth - Lunar month (1-12)
  * @param hourBranch - Hour branch index (0-11)
@@ -58,7 +61,7 @@ export function calculateBodyPalace(
   lunarMonth: number,
   hourBranch: number
 ): PalacePosition {
-  const position = ((lunarMonth + hourBranch - 1) % 12 + 12) % 12;
+  const position = ((lunarMonth + hourBranch + 1) % 12 + 12) % 12;
 
   return {
     position,

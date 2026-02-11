@@ -29,6 +29,7 @@ import {
   calculateDayPillar,
   calculateHourPillar
 } from '../bazi/fourPillars';
+import { getFourPillarsFromLunar } from '../bazi/lunarAdapter';
 import { calculateTenGod } from '../bazi/tenGods';
 import { calculateLifePalace, calculateBodyPalace } from '../ziwei/palaces';
 import { calculateBureau } from '../ziwei/bureau';
@@ -47,6 +48,7 @@ import {
 } from '../annual/interaction';
 import { analyzeTaiSui } from '../../services/annual/taiSuiAnalysis';
 import { aggregateSiHua } from '../ziwei/sihua/aggregator';
+import { getPalaceStem } from '../ziwei/sihua/edgeGenerator';
 import { calculateCurrentDecade } from '../ziwei/decade';
 import type { Star , Palace} from '../annual/palace';
 import { calculateYearlyForecast } from '../../services/annualFortune';
@@ -388,42 +390,21 @@ export class UnifiedCalculator {
       description: 'Convert solar date to Julian day number'
     });
 
-    // Calculate four pillars
-    const lichunTime = getLichunTime(solarDate.getFullYear());
-    const year = calculateYearPillar(solarDate, lichunTime);
+    // Calculate four pillars using lunar-typescript (community-validated)
+    const fourPillarsFromLunar = getFourPillarsFromLunar({ solarDate: trueSolarTime });
+    const year = fourPillarsFromLunar.year;
+    const month = fourPillarsFromLunar.month;
+    const day = fourPillarsFromLunar.day;
+    const hour = fourPillarsFromLunar.hour;
+
     const yearStemIndex = ganZhiToIndex(year) % 10;
-    calculationSteps.push({
-      step: 'yearPillar',
-      input: { solarDate: solarDate.toISOString(), lichunTime: lichunTime.toISOString() },
-      output: year,
-      description: 'Calculate year pillar using Lichun boundary'
-    });
-
-    // Get month branch from solar terms
-    const monthBranchIndex = getMonthBranchIndex(solarDate);
-    const month = calculateMonthPillar(monthBranchIndex, yearStemIndex);
-    calculationSteps.push({
-      step: 'monthPillar',
-      input: { monthBranchIndex, yearStemIndex },
-      output: month,
-      description: 'Calculate month pillar using solar longitude'
-    });
-
-    const day = calculateDayPillar(julianDay);
     const dayStemIndex = ganZhiToIndex(day) % 10;
-    calculationSteps.push({
-      step: 'dayPillar',
-      input: { solarDate: solarDate.toISOString() },
-      output: day,
-      description: 'Calculate day pillar using Julian day method'
-    });
 
-    const hour = calculateHourPillar(trueSolarTime, dayStemIndex);
     calculationSteps.push({
-      step: 'hourPillar',
-      input: { trueSolarTime: trueSolarTime.toISOString(), dayStemIndex },
-      output: hour,
-      description: 'Calculate hour pillar using true solar time'
+      step: 'fourPillars',
+      input: { trueSolarTime: trueSolarTime.toISOString() },
+      output: { year, month, day, hour },
+      description: 'Calculate four pillars using lunar-typescript (true solar time corrected)'
     });
 
     // Extract stems and branches
@@ -575,16 +556,11 @@ export class UnifiedCalculator {
     });
 
     // Calculate bureau (五行局)
-    // Life palace needs stem-branch pair
-    const lifePalaceIndex = lifePalace.position;
-    // We need to calculate life palace stem using year stem
-    const yearStemIndex = ganZhiToIndex(bazi.fourPillars.year) % 10;
-    // Calculate life palace stem using 五虎遁年法 (same as month pillar logic)
-    const lifePalaceStemIndex = (2 * yearStemIndex + 2 + lifePalaceIndex) % 10;
-
-    // Get stem and branch for bureau calculation
+    // Life palace stem via 五虎遁 (Wu-Hu-Dun) method
     const HEAVENLY_STEMS = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
-    const lifePalaceStem = HEAVENLY_STEMS[lifePalaceStemIndex];
+    const yearStemIndex = ganZhiToIndex(bazi.fourPillars.year) % 10;
+    const yearStem = HEAVENLY_STEMS[yearStemIndex];
+    const lifePalaceStem = getPalaceStem(yearStem, lifePalace.position) || HEAVENLY_STEMS[0];
     const bureau = calculateBureau(lifePalaceStem, lifePalace.branch);
     calculationSteps.push({
       step: 'bureau',
@@ -651,7 +627,6 @@ export class UnifiedCalculator {
     });
 
     // Calculate current decade stem
-    const yearStem = HEAVENLY_STEMS[yearStemIndex];
     const decadeStem = calculateCurrentDecade(
       solarDate,
       bureau,
