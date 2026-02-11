@@ -77,11 +77,8 @@ export function calculateTrueSolarTime(
   // Longitude correction: (L_local - L_std) × 4 minutes
   const longitudeCorrection = (longitude - standardMeridian) * 4;
 
-  // Equation of Time correction
-  const equationOfTime = calculateEquationOfTime(clockTime);
-
-  // Total correction in minutes
-  const totalCorrection = longitudeCorrection + equationOfTime;
+  // Total correction = longitude correction only
+  const totalCorrection = longitudeCorrection;
 
   // Apply correction to clock time
   const trueSolarTime = new Date(clockTime.getTime() + totalCorrection * 60 * 1000);
@@ -89,7 +86,7 @@ export function calculateTrueSolarTime(
   return {
     trueSolarTime,
     longitudeCorrection,
-    equationOfTime,
+    equationOfTime: 0,
     totalCorrection
   };
 }

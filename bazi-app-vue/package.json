@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "dev": "npx vite",
     "build": "vue-tsc && vite build",
     "build:skip-check": "vite build",
     "test": "vitest run",

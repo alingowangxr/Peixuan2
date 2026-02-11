@@ -31168,25 +31168,14 @@ var init_validator = __esm({
 });
 
 // src/calculation/core/time/trueSolarTime.ts
-function calculateEquationOfTime(date5) {
-  const year = date5.getFullYear();
-  const startOfYear = new Date(year, 0, 1);
-  const diff = date5.getTime() - startOfYear.getTime();
-  const dayOfYear = Math.floor(diff / (1e3 * 60 * 60 * 24)) + 1;
-  const B = 360 / 365 * (dayOfYear - 81);
-  const radB = B * Math.PI / 180;
-  const eot = B + 9.87 * Math.sin(2 * radB) - 7.53 * Math.cos(radB) - 1.5 * Math.sin(radB);
-  return eot / 60;
-}
 function calculateTrueSolarTime(clockTime, longitude, standardMeridian = 120) {
   const longitudeCorrection = (longitude - standardMeridian) * 4;
-  const equationOfTime = calculateEquationOfTime(clockTime);
-  const totalCorrection = longitudeCorrection + equationOfTime;
+  const totalCorrection = longitudeCorrection;
   const trueSolarTime = new Date(clockTime.getTime() + totalCorrection * 60 * 1e3);
   return {
     trueSolarTime,
     longitudeCorrection,
-    equationOfTime,
+    equationOfTime: 0,
     totalCorrection
   };
 }
@@ -31287,66 +31276,10 @@ var init_solarTerms = __esm({
 });
 
 // src/calculation/core/time/monthBranch.ts
-function getMonthBranchIndex(date5) {
-  const solar = Solar.fromDate(date5);
-  const lunar = solar.getLunar();
-  const jieQiTable = lunar.getJieQiTable();
-  const jieQiList = Object.entries(jieQiTable).map(([name, solarTerm]) => ({
-    name,
-    date: new Date(
-      solarTerm.getYear(),
-      solarTerm.getMonth() - 1,
-      solarTerm.getDay(),
-      solarTerm.getHour(),
-      solarTerm.getMinute(),
-      solarTerm.getSecond()
-    ),
-    branchIndex: MONTH_BRANCH_MAPPING[name] ?? SIMPLIFIED_MAPPING[name]
-  })).filter((item) => item.branchIndex !== void 0).sort((a2, b) => a2.date.getTime() - b.date.getTime());
-  for (let i = 0; i < jieQiList.length; i++) {
-    const current = jieQiList[i];
-    const next = jieQiList[i + 1];
-    if (date5 >= current.date && (!next || date5 < next.date)) {
-      return current.branchIndex;
-    }
-  }
-  return 1;
-}
-var MONTH_BRANCH_MAPPING, SIMPLIFIED_MAPPING;
 var init_monthBranch = __esm({
   "src/calculation/core/time/monthBranch.ts"() {
     "use strict";
     init_dist();
-    MONTH_BRANCH_MAPPING = {
-      "\u7ACB\u6625": 2,
-      // 寅
-      "\u9A5A\u87C4": 3,
-      // 卯 (simplified: 惊蛰)
-      "\u6E05\u660E": 4,
-      // 辰
-      "\u7ACB\u590F": 5,
-      // 巳
-      "\u8292\u7A2E": 6,
-      // 午 (simplified: 芒种)
-      "\u5C0F\u6691": 7,
-      // 未
-      "\u7ACB\u79CB": 8,
-      // 申
-      "\u767D\u9732": 9,
-      // 酉
-      "\u5BD2\u9732": 10,
-      // 戌
-      "\u7ACB\u51AC": 11,
-      // 亥
-      "\u5927\u96EA": 0,
-      // 子
-      "\u5C0F\u5BD2": 1
-      // 丑
-    };
-    SIMPLIFIED_MAPPING = {
-      "\u60CA\u86F0": 3,
-      "\u8292\u79CD": 6
-    };
   }
 });
 
@@ -31418,9 +31351,6 @@ var init_conversion = __esm({
 });
 
 // src/calculation/core/ganZhi/modulo.ts
-function stemModulo(value) {
-  return (value % 10 + 10) % 10;
-}
 var init_modulo = __esm({
   "src/calculation/core/ganZhi/modulo.ts"() {
     "use strict";
@@ -31472,72 +31402,6 @@ var init_lunarAdapter = __esm({
     "use strict";
     init_dist();
     init_ganZhi();
-  }
-});
-
-// src/calculation/bazi/fourPillars.ts
-function calculateYearPillar(solarDate, _lichunTime) {
-  const fourPillars = getFourPillarsFromLunar({ solarDate });
-  return fourPillars.year;
-}
-function solarLongitudeToMonthBranch(solarLongitude) {
-  const normalized = (solarLongitude % 360 + 360) % 360;
-  const offset = (normalized + 45) % 360;
-  const monthFromYin = Math.floor(offset / 30);
-  const branchIndex = (monthFromYin + 2) % 12;
-  return branchIndex;
-}
-function calculateMonthPillar(solarLongitude, yearStemIndex) {
-  const monthBranchIndex = solarLongitudeToMonthBranch(solarLongitude);
-  const yinStem = stemModulo(2 * yearStemIndex + 2);
-  const offset = (monthBranchIndex - 2 + 12) % 12;
-  const stemIndex = stemModulo(yinStem + offset);
-  let pillarIndex = 0;
-  for (let n2 = 0; n2 < 60; n2++) {
-    if (n2 % 10 === stemIndex && n2 % 12 === monthBranchIndex) {
-      pillarIndex = n2;
-      break;
-    }
-  }
-  return indexToGanZhi(pillarIndex);
-}
-function calculateDayPillar(jdn) {
-  const index2 = ((jdn - 2448851) % 60 + 60) % 60;
-  return indexToGanZhi(index2);
-}
-function calculateHourPillar(hourOrDate, minuteOrDayStemIndex, dayStemIndex) {
-  if (hourOrDate instanceof Date) {
-    const trueSolarTime = hourOrDate;
-    const hour2 = trueSolarTime.getHours();
-    const minute2 = trueSolarTime.getMinutes();
-    const stemIndex2 = minuteOrDayStemIndex;
-    return calculateHourPillar(hour2, minute2, stemIndex2);
-  }
-  const hour = hourOrDate;
-  const minute = minuteOrDayStemIndex;
-  const actualDayStemIndex = dayStemIndex ?? 0;
-  const totalMinutes = hour * 60 + minute;
-  let branchIndex;
-  if (totalMinutes >= 23 * 60) {
-    branchIndex = 0;
-  } else {
-    branchIndex = Math.floor((totalMinutes + 60) / 120) % 12;
-  }
-  const stemIndex = stemModulo(2 * actualDayStemIndex + branchIndex);
-  let pillarIndex = 0;
-  for (let n2 = 0; n2 < 60; n2++) {
-    if (n2 % 10 === stemIndex && n2 % 12 === branchIndex) {
-      pillarIndex = n2;
-      break;
-    }
-  }
-  return indexToGanZhi(pillarIndex);
-}
-var init_fourPillars = __esm({
-  "src/calculation/bazi/fourPillars.ts"() {
-    "use strict";
-    init_ganZhi();
-    init_lunarAdapter();
   }
 });
 
@@ -35171,9 +35035,8 @@ var init_calculator = __esm({
     init_dist();
     init_validator();
     init_time();
-    init_monthBranch();
     init_ganZhi();
-    init_fourPillars();
+    init_lunarAdapter();
     init_tenGods();
     init_palaces();
     init_bureau();
@@ -35283,37 +35146,18 @@ var init_calculator = __esm({
           output: julianDay,
           description: "Convert solar date to Julian day number"
         });
-        const lichunTime = getLichunTime(solarDate.getFullYear());
-        const year = calculateYearPillar(solarDate, lichunTime);
+        const fourPillarsFromLunar = getFourPillarsFromLunar({ solarDate: trueSolarTime });
+        const year = fourPillarsFromLunar.year;
+        const month = fourPillarsFromLunar.month;
+        const day = fourPillarsFromLunar.day;
+        const hour = fourPillarsFromLunar.hour;
         const yearStemIndex = ganZhiToIndex(year) % 10;
-        calculationSteps.push({
-          step: "yearPillar",
-          input: { solarDate: solarDate.toISOString(), lichunTime: lichunTime.toISOString() },
-          output: year,
-          description: "Calculate year pillar using Lichun boundary"
-        });
-        const monthBranchIndex = getMonthBranchIndex(solarDate);
-        const month = calculateMonthPillar(monthBranchIndex, yearStemIndex);
-        calculationSteps.push({
-          step: "monthPillar",
-          input: { monthBranchIndex, yearStemIndex },
-          output: month,
-          description: "Calculate month pillar using solar longitude"
-        });
-        const day = calculateDayPillar(julianDay);
         const dayStemIndex = ganZhiToIndex(day) % 10;
         calculationSteps.push({
-          step: "dayPillar",
-          input: { solarDate: solarDate.toISOString() },
-          output: day,
-          description: "Calculate day pillar using Julian day method"
-        });
-        const hour = calculateHourPillar(trueSolarTime, dayStemIndex);
-        calculationSteps.push({
-          step: "hourPillar",
-          input: { trueSolarTime: trueSolarTime.toISOString(), dayStemIndex },
-          output: hour,
-          description: "Calculate hour pillar using true solar time"
+          step: "fourPillars",
+          input: { trueSolarTime: trueSolarTime.toISOString() },
+          output: { year, month, day, hour },
+          description: "Calculate four pillars using lunar-typescript (true solar time corrected)"
         });
         const HEAVENLY_STEMS5 = ["\u7532", "\u4E59", "\u4E19", "\u4E01", "\u620A", "\u5DF1", "\u5E9A", "\u8F9B", "\u58EC", "\u7678"];
         const EARTHLY_BRANCHES5 = ["\u5B50", "\u4E11", "\u5BC5", "\u536F", "\u8FB0", "\u5DF3", "\u5348", "\u672A", "\u7533", "\u9149", "\u620C", "\u4EA5"];
@@ -41558,8 +41402,15 @@ init_d1();
 init_drizzle_orm();
 init_schema();
 
+// src/calculation/bazi/fourPillars.ts
+init_ganZhi();
+init_lunarAdapter();
+function calculateDayPillar(jdn) {
+  const index2 = ((jdn - 2448851) % 60 + 60) % 60;
+  return indexToGanZhi(index2);
+}
+
 // src/services/dailyReminderService.ts
-init_fourPillars();
 init_time();
 var STEM_TO_WUXING = {
   "\u7532": "\u6728" /* Wood */,
