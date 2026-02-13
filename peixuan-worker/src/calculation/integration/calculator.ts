@@ -5,7 +5,7 @@
  * Reference: IMPLEMENTATION_PLAN_PHASE1.md Task 4.1
  */
 
-import { Solar, Lunar, ShouXingUtil } from 'lunar-typescript';
+import { Solar } from 'lunar-typescript';
 import type {
   BirthInfo,
   CalculationResult,
@@ -14,23 +14,14 @@ import type {
   CalculationStep,
   CalculationMetadata,
   HiddenStems,
-  StarSymmetry
-} from '../types';
-import {
+  StarSymmetry,
   TenGod
 } from '../types';
 import { validateBirthInfo } from './validator';
-import { calculateTrueSolarTime, dateToJulianDay, getLichunTime } from '../core/time';
-import { getMonthBranchIndex } from '../core/time/monthBranch';
+import { calculateTrueSolarTime, dateToJulianDay } from '../core/time';
 import { ganZhiToIndex } from '../core/ganZhi';
-import {
-  calculateYearPillar,
-  calculateMonthPillar,
-  calculateDayPillar,
-  calculateHourPillar
-} from '../bazi/fourPillars';
-import { getFourPillarsFromLunar } from '../bazi/lunarAdapter';
-import { calculateTenGod } from '../bazi/tenGods';
+import { getFourPillarsFromLunar, getTenGodsFromLunar } from '../bazi/lunarAdapter';
+import { getHiddenStems as getHiddenStemsArray } from '../bazi/hiddenStems';
 import { calculateLifePalace, calculateBodyPalace } from '../ziwei/palaces';
 import { calculateBureau } from '../ziwei/bureau';
 import { findZiWeiPosition } from '../ziwei/stars/ziwei';
@@ -40,7 +31,7 @@ import { calculateWuXingDistribution } from '../wuXing/distribution';
 import { determineFortuneDirection, calculateQiYunDate } from '../fortune/qiyun';
 import { generateDaYunList, getCurrentDaYun } from '../fortune/dayun';
 import { getAnnualPillar } from '../annual/liuchun';
-import { locateAnnualLifePalace, createPalaceArray } from '../annual/palace';
+import { locateAnnualLifePalace, type Palace } from '../annual/palace';
 import {
   detectStemCombinations,
   detectBranchClashes,
@@ -50,33 +41,17 @@ import { analyzeTaiSui } from '../../services/annual/taiSuiAnalysis';
 import { aggregateSiHua } from '../ziwei/sihua/aggregator';
 import { getPalaceStem } from '../ziwei/sihua/edgeGenerator';
 import { calculateCurrentDecade } from '../ziwei/decade';
-import type { Star , Palace} from '../annual/palace';
 import { calculateYearlyForecast } from '../../services/annualFortune';
 
 /**
- * Hidden stems mapping for earthly branches
- * Reference: Traditional BaZi藏干表
+ * Convert HiddenStem[] from hiddenStems.ts to HiddenStems interface
  */
-const HIDDEN_STEMS_MAP: Record<string, HiddenStems> = {
-  '子': { primary: '癸' },
-  '丑': { primary: '己', middle: '癸', residual: '辛' },
-  '寅': { primary: '甲', middle: '丙', residual: '戊' },
-  '卯': { primary: '乙' },
-  '辰': { primary: '戊', middle: '乙', residual: '癸' },
-  '巳': { primary: '丙', middle: '庚', residual: '戊' },
-  '午': { primary: '丁', middle: '己' },
-  '未': { primary: '己', middle: '丁', residual: '乙' },
-  '申': { primary: '庚', middle: '壬', residual: '戊' },
-  '酉': { primary: '辛' },
-  '戌': { primary: '戊', middle: '辛', residual: '丁' },
-  '亥': { primary: '壬', middle: '甲' }
-};
-
-/**
- * Calculate hidden stems for a given earthly branch
- */
-function getHiddenStems(branch: string): HiddenStems {
-  return HIDDEN_STEMS_MAP[branch] || { primary: branch };
+function convertHiddenStems(branch: string): HiddenStems {
+  const stems = getHiddenStemsArray(branch);
+  const result: HiddenStems = { primary: stems[0].stem };
+  if (stems.length > 1) {result.middle = stems[1].stem;}
+  if (stems.length > 2) {result.residual = stems[2].stem;}
+  return result;
 }
 
 /**
@@ -392,10 +367,10 @@ export class UnifiedCalculator {
 
     // Calculate four pillars using lunar-typescript (community-validated)
     const fourPillarsFromLunar = getFourPillarsFromLunar({ solarDate: trueSolarTime });
-    const year = fourPillarsFromLunar.year;
-    const month = fourPillarsFromLunar.month;
-    const day = fourPillarsFromLunar.day;
-    const hour = fourPillarsFromLunar.hour;
+    const {year} = fourPillarsFromLunar;
+    const {month} = fourPillarsFromLunar;
+    const {day} = fourPillarsFromLunar;
+    const {hour} = fourPillarsFromLunar;
 
     const yearStemIndex = ganZhiToIndex(year) % 10;
     const dayStemIndex = ganZhiToIndex(day) % 10;
@@ -417,23 +392,23 @@ export class UnifiedCalculator {
     const hourBranch = EARTHLY_BRANCHES[ganZhiToIndex(hour) % 12];
     const dayStem = HEAVENLY_STEMS[dayStemIndex];
 
-    // Calculate hidden stems
+    // Calculate hidden stems (using hiddenStems.ts, converted to HiddenStems interface)
     const hiddenStems = {
-      year: getHiddenStems(yearBranch),
-      month: getHiddenStems(monthBranch),
-      day: getHiddenStems(dayBranch),
-      hour: getHiddenStems(hourBranch)
+      year: convertHiddenStems(yearBranch),
+      month: convertHiddenStems(monthBranch),
+      day: convertHiddenStems(dayBranch),
+      hour: convertHiddenStems(hourBranch)
     };
 
-    // Calculate ten gods (relationships to day stem)
+    // Calculate ten gods using lunar-typescript
     const yearStem = HEAVENLY_STEMS[yearStemIndex];
     const monthStem = HEAVENLY_STEMS[ganZhiToIndex(month) % 10];
     const hourStem = HEAVENLY_STEMS[ganZhiToIndex(hour) % 10];
 
-    const tenGods = {
-      year: calculateTenGod(dayStem, yearStem),
-      month: calculateTenGod(dayStem, monthStem),
-      hour: calculateTenGod(dayStem, hourStem)
+    const tenGods = getTenGodsFromLunar(trueSolarTime) as {
+      year: TenGod;
+      month: TenGod;
+      hour: TenGod;
     };
 
     // Calculate WuXing distribution

@@ -6,8 +6,7 @@
  */
 
 import { Solar } from 'lunar-typescript';
-import type { GanZhi } from '../core/ganZhi';
-import { indexToGanZhi, HEAVENLY_STEMS, EARTHLY_BRANCHES } from '../core/ganZhi';
+import { HEAVENLY_STEMS, EARTHLY_BRANCHES, type GanZhi } from '../core/ganZhi';
 import type { FourPillars } from './fourPillars';
 
 /**
@@ -66,4 +65,58 @@ function parseGanZhi(ganzhiStr: string): GanZhi {
   }
 
   return { stem, branch };
+}
+
+/**
+ * Simplified → Traditional Chinese mapping for ten gods
+ * lunar-typescript returns simplified Chinese, we need traditional
+ */
+const SHISHEN_TO_TRADITIONAL: Record<string, string> = {
+  '劫财': '劫財',
+  '伤官': '傷官',
+  '偏财': '偏財',
+  '正财': '正財',
+  '七杀': '七殺',
+  // These are the same in simplified and traditional
+  '比肩': '比肩',
+  '食神': '食神',
+  '正官': '正官',
+  '偏印': '偏印',
+  '正印': '正印',
+};
+
+/**
+ * Get ten gods (十神) for year/month/hour stems using lunar-typescript
+ *
+ * @param solarDate - Birth date in solar calendar (should be true solar time corrected)
+ * @returns Ten gods in Traditional Chinese for year, month, and hour stems
+ */
+export function getTenGodsFromLunar(solarDate: Date): { year: string; month: string; hour: string } {
+  const solar = Solar.fromDate(solarDate);
+  const lunar = solar.getLunar();
+  const eightChar = lunar.getEightChar();
+
+  const yearRaw = eightChar.getYearShiShenGan();
+  const monthRaw = eightChar.getMonthShiShenGan();
+  const hourRaw = eightChar.getTimeShiShenGan();
+
+  return {
+    year: SHISHEN_TO_TRADITIONAL[yearRaw] || yearRaw,
+    month: SHISHEN_TO_TRADITIONAL[monthRaw] || monthRaw,
+    hour: SHISHEN_TO_TRADITIONAL[hourRaw] || hourRaw,
+  };
+}
+
+/**
+ * Get day pillar from lunar-typescript
+ *
+ * @param solarDate - Date in solar calendar
+ * @returns Day pillar as GanZhi
+ */
+export function getDayPillarFromLunar(solarDate: Date): GanZhi {
+  const solar = Solar.fromDate(solarDate);
+  const lunar = solar.getLunar();
+  const eightChar = lunar.getEightChar();
+  const dayGanZhi = eightChar.getDayGan() + eightChar.getDayZhi();
+  return parseGanZhi(dayGanZhi);
 }

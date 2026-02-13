@@ -6,8 +6,7 @@
  * Cost: $0
  */
 
-import { calculateDayPillar } from '../calculation/bazi/fourPillars';
-import { dateToJulianDay } from '../calculation/core/time';
+import { getDayPillarFromLunar } from '../calculation/bazi/lunarAdapter';
 import type { GanZhi } from '../calculation/core/ganZhi';
 
 /**
@@ -118,11 +117,7 @@ const OVERCOMING_CYCLE: Record<WuXing, WuXing> = {
  * // Returns: { stem: '甲', branch: '子' }
  */
 export function calculateDailyStemBranch(date: Date): GanZhi {
-  // Convert to Julian Day Number for calculation
-  const jdn = dateToJulianDay(date);
-
-  // Calculate day pillar using existing fourPillars module
-  return calculateDayPillar(jdn);
+  return getDayPillarFromLunar(date);
 }
 
 /**

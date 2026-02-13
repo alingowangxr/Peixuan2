@@ -84,7 +84,7 @@ export interface HiddenStems {
 /**
  * Ten Gods (十神) relationship
  */
-export type TenGod = '比肩' | '劫财' | '食神' | '伤官' | '偏财' | '正财' | '七杀' | '正官' | '偏印' | '正印';
+export type TenGod = '比肩' | '劫財' | '食神' | '傷官' | '偏財' | '正財' | '七殺' | '正官' | '偏印' | '正印';
 
 /**
  * BaZi calculation result
