@@ -11,8 +11,8 @@
 **Project:** `Peixuan`
 **Framework:** `node`
 **Type:** `node`
-**Path:** `D:\vibecode\Peixuan`
-**Detected:** 2026-02-11 17:24:39
+**Path:** `C:\Users\mike\Peixuan`
+**Detected:** 2026-02-13 22:38:09
 
 ---
 
@@ -163,7 +163,7 @@ bazi-app-vue/
         __tests__/
           WuXingRadar.spec.ts
         constants.ts ← WuXingChart.vue, index.ts, WuXingRadar.vue +2 more
-        index.ts ← test-integration-fixes.ts, index.ts, calculator.ts +2 more
+        index.ts ← test-integration-fixes.ts, index.ts, tenGods.test.ts
     composables/
       useDailyQuestion.ts ← DailyQuestionPanel.vue
       useDisplayMode.ts
@@ -174,7 +174,7 @@ bazi-app-vue/
       useSharedLayeredReading.ts
       useTheme.ts ← App.vue, AppHeader.vue
     i18n/
-      index.ts ← test-integration-fixes.ts, index.ts, calculator.ts +2 more
+      index.ts ← test-integration-fixes.ts, index.ts, tenGods.test.ts
       locales/
         en.json ← index.ts
         zh_TW.json ← index.ts
@@ -183,7 +183,7 @@ bazi-app-vue/
     plugins/
       errorHandler.ts ← main.ts
     router/
-      index.ts ← test-integration-fixes.ts, index.ts, calculator.ts +2 more
+      index.ts ← test-integration-fixes.ts, index.ts, tenGods.test.ts
     services/
       apiService.ts
       astrologyIntegrationService.ts
@@ -230,7 +230,6 @@ bazi-app-vue/
   tsconfig.node.json
   vite.config.ts
 doc/
-  ARCHITECTURE_ANALYSIS.md
   LLM記憶模組實作指南.md
   LLM記憶模組產品設計評估.md
 package-lock.json
@@ -250,10 +249,8 @@ peixuan-worker/
       _journal.json
   drizzle.config.ts
   eslint.config.js
-  nul
   package-lock.json
   package.json
-  public/
   scripts/
     verify-bazi.ts
   setup-staging.sh
@@ -269,7 +266,7 @@ peixuan-worker/
         interaction.ts ← calculateYearlyForecast.ts, calculator.ts, index.ts +1 more
         liuchun.ts ← calculateYearlyForecast.ts, nextYearCalculator.ts, calculator.ts +1 more
         nextYearCalculator.ts
-        palace.ts ← calculateYearlyForecast.ts, manual-verify.ts, yearlyForecast.test.ts +8 more
+        palace.ts ← calculateYearlyForecast.ts, manual-verify.ts, yearlyForecast.test.ts +7 more
       bazi/
         __tests__/
           fourPillars.integration.test.ts
@@ -278,45 +275,45 @@ peixuan-worker/
           tenGods.test.ts
         fourPillars.legacy.ts
         fourPillars.test.ts
-        fourPillars.ts ← verify-bazi.ts, dailyReminderService.ts, calculateYearlyForecast.ts +8 more
+        fourPillars.ts ← verify-bazi.ts, calculateYearlyForecast.ts, manual-verify.ts +2 more
         hiddenStems.legacy.ts
-        hiddenStems.ts ← index.ts, distribution.ts, verification.test.ts +1 more
-        index.ts ← test-integration-fixes.ts, index.ts, calculator.ts +2 more
-        lunarAdapter.ts ← fourPillars.ts, calculator.ts
+        hiddenStems.ts ← index.ts, calculator.ts, distribution.ts +2 more
+        index.ts ← test-integration-fixes.ts, index.ts, tenGods.test.ts
+        lunarAdapter.ts ← dailyReminderService.ts, fourPillars.ts, index.ts +4 more
         lunarHiddenStemsAdapter.ts
         lunarTenGodsAdapter.ts
         tenGods.legacy.ts
-        tenGods.ts ← test-integration-fixes.ts, index.ts, calculator.ts +2 more
+        tenGods.ts ← test-integration-fixes.ts, index.ts, tenGods.test.ts
         verify-lunar-output.test.ts
       core/
         ganZhi/
           conversion.ts ← liuchun.ts, dayun.ts, dayun.ts +2 more
-          index.ts ← test-integration-fixes.ts, index.ts, calculator.ts +2 more
+          index.ts ← test-integration-fixes.ts, index.ts, tenGods.test.ts
           modulo.ts ← index.ts
         time/
-          index.ts ← test-integration-fixes.ts, index.ts, calculator.ts +2 more
-          julianDay.ts ← fourPillars.test.ts, index.ts, fourPillars.integration.test.ts
-          monthBranch.ts ← calculator.ts, index.ts
-          solarTerms.ts ← verify-bazi.ts, getLichunDatesBetween.ts, manual-verify.ts +7 more
+          index.ts ← test-integration-fixes.ts, index.ts, tenGods.test.ts
+          julianDay.ts ← index.ts
+          monthBranch.ts ← index.ts
+          solarTerms.ts ← verify-bazi.ts, getLichunDatesBetween.ts, manual-verify.ts +6 more
           trueSolarTime.ts ← trueSolarTime.test.ts, index.ts
         wuXing/
-          index.ts ← test-integration-fixes.ts, index.ts, calculator.ts +2 more
+          index.ts ← test-integration-fixes.ts, index.ts, tenGods.test.ts
           relations.ts ← interaction.ts, distribution.ts, distribution.ts +5 more
       fortune/
         __tests__/
           dayun.test.ts
           qiyun.test.ts
         dayun.ts ← calculator.ts, index.ts, dayun.test.ts
-        index.ts ← test-integration-fixes.ts, index.ts, calculator.ts +2 more
+        index.ts ← test-integration-fixes.ts, index.ts, tenGods.test.ts
         qiyun.ts ← index.ts, calculator.ts, qiyun.test.ts
       integration/
         __tests__/
           calculator.test.ts
           validator.test.ts
-        calculator.ts ← analyzeController.ts, purpleStarController.ts, unifiedController.ts +2 more
+        calculator.ts ← analyzeController.ts, purpleStarController.ts, unifiedController.ts +3 more
         validator.ts ← calculator.ts, validator.test.ts
       types/
-        index.ts ← test-integration-fixes.ts, index.ts, calculator.ts +2 more
+        index.ts ← test-integration-fixes.ts, index.ts, tenGods.test.ts
       wuXing/
         __tests__/
           distribution.test.ts
@@ -324,6 +321,8 @@ peixuan-worker/
         distribution.ts ← calculator.ts, index.ts, distribution.test.ts
         seasonality.ts ← distribution.ts, seasonality.test.ts
       ziwei/
+        __tests__/
+          cross-validation.test.ts
         bureau.test.ts
         bureau.ts ← apiResponse.ts, calculator.ts, index.ts +4 more
         decade.ts ← calculator.ts
@@ -331,9 +330,9 @@ peixuan-worker/
         palaces.ts ← apiResponse.ts, calculator.ts, index.ts +1 more
         sihua/
           aggregator.ts ← calculator.ts, index.ts
-          edgeGenerator.ts ← aggregator.ts, index.ts, edgeGenerator.test.ts
+          edgeGenerator.ts ← calculator.ts, aggregator.ts, index.ts +2 more
           graphAnalysis.ts ← aggregator.ts, index.ts
-          index.ts ← test-integration-fixes.ts, index.ts, calculator.ts +2 more
+          index.ts ← test-integration-fixes.ts, index.ts, tenGods.test.ts
           types.ts ← advancedMarkdownFormatter.ts, markdownFormatter.ts, index.ts +4 more
         stars/
           auxiliary.test.ts
@@ -343,10 +342,12 @@ peixuan-worker/
           ziwei.test.ts
           ziwei.ts ← calculator.ts, ziwei.test.ts
     controllers/
+      CHANGELOG_1.md
       analyzeController.ts ← analyzeRoutes.ts
       cacheUtilities.ts ← analyzeController.ts
       chartController.ts ← index.ts, chartRoutes.ts, purpleStarRoutes.ts
       dailyReminderController.ts ← dailyReminderRoutes.ts
+      promptBuilder-old.ts
       promptBuilder.ts ← analyzeController.ts
       purpleStarController.ts
       streamProcessor.ts ← analyzeController.ts
@@ -358,7 +359,7 @@ peixuan-worker/
         markdownFormatter.test.ts
       advancedMarkdownFormatter.ts ← analyzeController.ts
       markdownFormatter.ts ← analyzeController.ts, unifiedController.ts, agenticGeminiService.ts +1 more
-    index.ts ← test-integration-fixes.ts, index.ts, calculator.ts +2 more
+    index.ts ← test-integration-fixes.ts, index.ts, tenGods.test.ts
     routes/
       analyzeRoutes.ts ← index.ts
       chartRoutes.ts ← index.ts
@@ -389,7 +390,7 @@ peixuan-worker/
           yearlyForecast.test.ts
         calculateYearlyForecast.ts ← index.ts, manual-verify.ts, yearlyForecast.test.ts
         getLichunDatesBetween.ts ← calculateYearlyForecast.ts, index.ts, manual-verify.ts +1 more
-        index.ts ← test-integration-fixes.ts, index.ts, calculator.ts +2 more
+        index.ts ← test-integration-fixes.ts, index.ts, tenGods.test.ts
       azureOpenAIService.ts ← analyzeRoutes.ts, azureOpenAIService.test.ts
       cacheService.ts ← chartController.ts
       chartCacheService.ts ← analyzeController.ts, unifiedController.ts, analyzeRoutes.ts
@@ -428,7 +429,7 @@ vfor-backup-20251129-210944.tar.gz
 
 ## 📊 File Dependencies
 
-> Scanned 200 files
+> Scanned 195 files
 
 ### API Endpoints Used
 
@@ -445,10 +446,10 @@ vfor-backup-20251129-210944.tar.gz
 | File | Imported by |
 |------|-------------|
 | `peixuan-worker/src/calculation/types` | 19 files |
-| `peixuan-worker/src/calculation/core/ganZhi` | 14 files |
-| `peixuan-worker/src/calculation/bazi/fourPillars` | 11 files |
-| `peixuan-worker/src/calculation/annual/palace` | 11 files |
-| `peixuan-worker/src/calculation/core/time/solarTerms` | 10 files |
+| `peixuan-worker/src/calculation/annual/palace` | 10 files |
+| `peixuan-worker/src/calculation/core/time/solarTerms` | 9 files |
+| `peixuan-worker/src/calculation/core/ganZhi` | 9 files |
+| `peixuan-worker/src/db/schema` | 9 files |
 
 
 

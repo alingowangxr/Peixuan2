@@ -1,6 +1,6 @@
 # 佩璇 (Peixuan) - 智慧命理分析平台
 
-![Version](https://img.shields.io/badge/version-1.3.0-blue.svg)
+![Version](https://img.shields.io/badge/version-1.3.1-blue.svg)
 ![License](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg)
 ![Vue](https://img.shields.io/badge/Vue.js-3.5-4FC08D.svg)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6.svg)
@@ -16,7 +16,7 @@
 
 ### 雙系統命理引擎
 
-- **八字四柱 (BaZi)**：基於 `lunar-typescript` 計算四柱八字，支援真太陽時經度校正、藏干、十神、五行能量分佈與季節修正
+- **八字四柱 (BaZi)**：全面委託 `lunar-typescript` 社群驗證庫計算四柱、十神，支援真太陽時經度校正、藏干、五行能量分佈與季節修正
 - **紫微斗數 (ZiWei DouShu)**：完整十二宮位排盤、108 顆星曜安星、四化飛星圖分析（DFS 環路檢測 + 度數中心性分析）
 - **大限/流年系統**：起運計算、大運生成、流年命宮旋轉、太歲分析、天干五合/地支六沖/三合三會互動偵測
 
@@ -43,13 +43,14 @@
 |------|------|
 | Cloudflare Workers | Serverless 邊緣運算 |
 | TypeScript 5.5+ | 型別安全開發 |
-| itty-router 5.x | 輕量級路由 (< 1KB) |
+| Hono / itty-router | 輕量級路由 |
 | Cloudflare D1 | SQLite 分散式資料庫 |
 | Drizzle ORM 0.44+ | 型別安全 SQL ORM |
 | Google Gemini API | 主要 AI 引擎 |
-| Azure OpenAI API | 備援 AI 引擎 |
+| Azure OpenAI API | 備援 AI 引擎 (gpt-4.1-mini) |
 | lunar-typescript 1.8+ | 農曆計算與八字排盤 |
 | Zod 4.x | Schema 驗證 |
+| date-fns 4.x | 日期處理 |
 
 ### 前端 (bazi-app-vue/)
 | 技術 | 用途 |
@@ -85,11 +86,11 @@ Peixuan/
 │   │   │   ├── integration/
 │   │   │   │   ├── calculator.ts      # 統一計算器 (單一入口)
 │   │   │   │   └── validator.ts       # 輸入驗證
-│   │   │   ├── bazi/                  # 八字系統
-│   │   │   │   ├── lunarAdapter.ts    # lunar-typescript 橋接器
-│   │   │   │   ├── fourPillars.ts     # 四柱計算
+│   │   │   ├── bazi/                  # 八字系統 (委託 lunar-typescript)
+│   │   │   │   ├── lunarAdapter.ts    # lunar-typescript 橋接層 (四柱+十神)
+│   │   │   │   ├── fourPillars.ts     # FourPillars 介面定義
 │   │   │   │   ├── hiddenStems.ts     # 藏干
-│   │   │   │   └── tenGods.ts         # 十神
+│   │   │   │   └── tenGods.ts         # TenGod 型別定義
 │   │   │   ├── ziwei/                 # 紫微斗數系統
 │   │   │   │   ├── palaces.ts         # 命宮/身宮
 │   │   │   │   ├── bureau.ts          # 五行局
@@ -162,8 +163,14 @@ Peixuan/
 │   ├── vite.config.ts
 │   └── package.json
 │
-├── doc/
-│   └── ARCHITECTURE_ANALYSIS.md       # 完整架構分析
+├── doc/                               # 設計文件
+│   ├── LLM記憶模組實作指南.md
+│   └── LLM記憶模組產品設計評估.md
+├── docs/                              # 營運與開發者文件
+│   ├── CONTRIB.md                     # 開發者指南（腳本、環境變數）
+│   └── RUNBOOK.md                     # 營運手冊（部署、監控、回滾）
+├── scripts/
+│   └── quick-deploy.sh                # 快速部署腳本
 ├── CLAUDE.md                          # Claude Code 專案指引
 ├── README.md
 └── LICENSE                            # CC BY-NC-SA 4.0
@@ -214,8 +221,9 @@ Peixuan/
 ## 快速開始
 
 ### 環境要求
-- Node.js 20.x+
-- npm 8+
+- Node.js >= 18
+- npm >= 9
+- Wrangler CLI >= 4.x
 - Cloudflare 帳號（用於雲端部署）
 
 ### 本地開發
@@ -290,14 +298,35 @@ wrangler secret put AZURE_OPENAI_API_KEY --env production
 ## 測試
 
 ```bash
-# 後端測試
-cd peixuan-worker
-npm run test
+# 後端全部測試
+cd peixuan-worker && npm test
+
+# 後端單元測試
+npm run test:unit
+
+# 後端整合測試
+npm run test:integration
 
 # 前端測試
-cd bazi-app-vue
-npm run test
+cd bazi-app-vue && npm test
+
+# 前端覆蓋率
+npm run test:coverage
+
+# 單一測試檔
+cd peixuan-worker && npx vitest run src/calculation/bazi/__tests__/tenGods.test.ts
 ```
+
+---
+
+## 文件索引
+
+| 文件 | 說明 |
+|------|------|
+| [docs/CONTRIB.md](docs/CONTRIB.md) | 開發者指南：完整腳本參考、環境變數、測試流程 |
+| [docs/RUNBOOK.md](docs/RUNBOOK.md) | 營運手冊：部署、監控、常見問題、回滾 |
+| [CLAUDE.md](CLAUDE.md) | Claude Code AI 助手專案指引 |
+| [LICENSES.md](LICENSES.md) | 第三方授權清單 |
 
 ---
 
@@ -309,6 +338,7 @@ npm run test
 | Agentic ReAct | 每日問答 Function Calling + 多輪推理（最多 8 輪） |
 | SSE 串流 | 所有 AI 回應為即時串流，含快取模擬串流 |
 | 圖論四化分析 | 有向圖建模 + DFS 環路檢測 + 度數中心性 |
+| 八字統一委託 | 四柱 + 十神全面委託 `lunar-typescript`，`lunarAdapter.ts` 為唯一橋接層 |
 | 真太陽時校正 | 經度校正 `(L_local - 120) x 4 分鐘`，標準子午線 120°E |
 | 每日一致性快取 | 同一天快取結果永遠回傳，強制刷新無效 |
 | 零影響 Analytics | `ctx.waitUntil()` 非同步寫入，不影響回應速度 |
