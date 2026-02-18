@@ -1,5 +1,14 @@
 {
-  "dependencies": {
-    "@google/generative-ai": "^0.24.1"
+  "name": "peixuan-monorepo",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run dev:worker\" \"npm run dev:frontend\"",
+    "dev:worker": "cd peixuan-worker && npm run dev",
+    "dev:frontend": "cd bazi-app-vue && npm run dev",
+    "install:all": "npm install && cd peixuan-worker && npm install && cd ../bazi-app-vue && npm install",
+    "build:all": "cd peixuan-worker && npm run build && cd ../bazi-app-vue && npm run build"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
   }
 }

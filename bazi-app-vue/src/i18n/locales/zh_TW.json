@@ -515,7 +515,21 @@
     "candidate_select_placeholder": "發現多個匹配地址，請選擇最準確的",
     "show_advanced": "進階選項",
     "hide_advanced": "隱藏進階選項",
-    "submit_success": "命盤計算成功！"
+    "submit_success": "命盤計算成功！",
+    "calendar_solar": "公曆",
+    "calendar_lunar": "農曆",
+    "lunar_year": "農曆年份",
+    "lunar_month": "農曆月份",
+    "lunar_day": "農曆日期",
+    "use_current_location": "使用目前位置",
+    "hide_coords": "隱藏座標細節",
+    "show_coords": "調整精確座標",
+    "submit_btn_long": "解析我的命運藍圖",
+    "bazi_preview_title": "八字即時預覽",
+    "pillar_year": "年柱",
+    "pillar_month": "月柱",
+    "pillar_day": "日柱",
+    "pillar_hour": "時柱"
   },
   "unifiedView": {
     "title": "命盤計算",

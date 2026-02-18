@@ -555,7 +555,21 @@
     "candidate_select_placeholder": "Multiple addresses found, please select the most accurate one",
     "show_advanced": "Advanced Options",
     "hide_advanced": "Hide Advanced Options",
-    "submit_success": "Chart calculation successful!"
+    "submit_success": "Chart calculation successful!",
+    "calendar_solar": "Solar",
+    "calendar_lunar": "Lunar",
+    "lunar_year": "Lunar Year",
+    "lunar_month": "Lunar Month",
+    "lunar_day": "Lunar Day",
+    "use_current_location": "Use Current Location",
+    "hide_coords": "Hide Coordinates",
+    "show_coords": "Adjust Coordinates",
+    "submit_btn_long": "Analyze My Destiny Blueprint",
+    "bazi_preview_title": "Instant BaZi Preview",
+    "pillar_year": "Year",
+    "pillar_month": "Month",
+    "pillar_day": "Day",
+    "pillar_hour": "Hour"
   },
   "unifiedView": {
     "title": "Chart Calculation",

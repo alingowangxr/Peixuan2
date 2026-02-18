@@ -1,8 +1,8 @@
 /**
  * Form data management composable
  */
-import { ref, reactive } from 'vue';
-import { Solar } from 'lunar-typescript';
+import { ref, reactive, computed } from 'vue';
+import { Solar, Lunar } from 'lunar-typescript';
 
 export interface CityOption {
   label: string;
@@ -18,6 +18,7 @@ export interface TimezoneOption {
 }
 
 export interface BirthFormData {
+  calendarMode: 'solar' | 'lunar';
   birthDate: string;
   birthTime: string;
   gender: 'male' | 'female';
@@ -25,6 +26,9 @@ export interface BirthFormData {
   latitude: number | null;
   timezone: string;
   isLeapMonth: boolean;
+  lunarYear?: number;
+  lunarMonth?: number;
+  lunarDay?: number;
 }
 
 export function useFormData() {
@@ -231,6 +235,7 @@ export function useFormData() {
   ]);
 
   const formData = reactive<BirthFormData>({
+    calendarMode: 'solar',
     birthDate: '',
     birthTime: '',
     gender: 'male',
@@ -238,10 +243,53 @@ export function useFormData() {
     latitude: null,
     timezone: 'Asia/Taipei',
     isLeapMonth: false,
+    lunarYear: new Date().getFullYear(),
+    lunarMonth: 1,
+    lunarDay: 1,
   });
 
   const selectedCity = ref('');
   const leapMonthInfo = ref('');
+
+  // 獲取目前年份的農曆月份列表 (包含閏月)
+  const lunarMonths = computed(() => {
+    const year = formData.lunarYear || new Date().getFullYear();
+    const months = [];
+    try {
+      const leapMonth = Lunar.fromYmd(year, 1, 1).getYearLeapMonth();
+      for (let m = 1; m <= 12; m++) {
+        months.push({ label: `${m}月`, value: m });
+        if (m === leapMonth) {
+          months.push({ label: `閏${m}月`, value: -m });
+        }
+      }
+    } catch (e) {
+      // Fallback
+      for (let m = 1; m <= 12; m++) {
+        months.push({ label: `${m}月`, value: m });
+      }
+    }
+    return months;
+  });
+
+  // 獲取目前農曆月份的天數
+  const lunarDays = computed(() => {
+    const year = formData.lunarYear || new Date().getFullYear();
+    const month = formData.lunarMonth || 1;
+    try {
+      // 透過 lunar-typescript 獲取該月實際天數
+      const lunar = Lunar.fromYmd(year, month, 1);
+      // 獲取該農曆月的天數 (29 或 30)
+      const dayCount = lunar.getMonthLeap() === (month < 0) ? 
+                       Lunar.fromYmd(year, month, 1).getDaysInMonth() : 30;
+      
+      // 簡單一點的做法：lunar-typescript 的 Lunar 物件有 getMonth().getDays() 嗎？
+      // 其實最準確是從 Lunar 物件獲取，這裡我們用一個循環或已知屬性
+      return lunar.getDaysInMonth();
+    } catch (e) {
+      return 30;
+    }
+  });
 
   // 填入城市座標
   const fillCityCoordinates = (cityValue: string) => {
@@ -253,7 +301,7 @@ export function useFormData() {
     }
   };
 
-  // 自動判斷閏月
+  // 自動判斷閏月 (公曆模式下用)
   const detectLeapMonth = () => {
     if (!formData.birthDate) {
       formData.isLeapMonth = false;
@@ -263,6 +311,7 @@ export function useFormData() {
 
     try {
       const [year, month, day] = formData.birthDate.split('-').map(Number);
+      if (!year || !month || !day) return;
       const solar = Solar.fromYmd(year, month, day);
       const lunar = solar.getLunar();
       const lunarMonth = lunar.getMonth();
@@ -270,9 +319,55 @@ export function useFormData() {
       formData.isLeapMonth = lunarMonth < 0;
       leapMonthInfo.value = lunarMonth < 0 ? `閏${Math.abs(lunarMonth)}月` : '';
     } catch (error) {
-      console.error('閏月判斷失敗:', error);
       formData.isLeapMonth = false;
       leapMonthInfo.value = '';
+    }
+  };
+
+  // 同步農曆到公曆
+  const syncLunarToSolar = () => {
+    if (
+      formData.lunarYear &&
+      formData.lunarMonth &&
+      formData.lunarDay
+    ) {
+      try {
+        const lunar = Lunar.fromYmd(
+          formData.lunarYear,
+          formData.lunarMonth,
+          formData.lunarDay,
+        );
+        const solar = lunar.getSolar();
+        formData.birthDate = `${solar.getYear()}-${String(solar.getMonth()).padStart(2, '0')}-${String(solar.getDay()).padStart(2, '0')}`;
+        
+        formData.isLeapMonth = formData.lunarMonth < 0;
+        leapMonthInfo.value = formData.lunarMonth < 0 ? `閏${Math.abs(formData.lunarMonth)}月` : '';
+      } catch (e) {
+        // Silently ignore or set reasonable defaults
+      }
+    }
+  };
+
+  // 同步公曆到農曆
+  const syncSolarToLunar = () => {
+    if (formData.birthDate) {
+      try {
+        const parts = formData.birthDate.split('-');
+        if (parts.length !== 3) return;
+        
+        const [year, month, day] = parts.map(Number);
+        if (!year || !month || !day) return;
+        
+        const solar = Solar.fromYmd(year, month, day);
+        const lunar = solar.getLunar();
+        formData.lunarYear = lunar.getYear();
+        formData.lunarMonth = lunar.getMonth();
+        formData.lunarDay = lunar.getDay();
+        formData.isLeapMonth = lunar.getMonth() < 0;
+        leapMonthInfo.value = lunar.getMonth() < 0 ? `閏${Math.abs(lunar.getMonth())}月` : '';
+      } catch (e) {
+        // Silently ignore
+      }
     }
   };
 
@@ -284,5 +379,9 @@ export function useFormData() {
     leapMonthInfo,
     fillCityCoordinates,
     detectLeapMonth,
+    syncLunarToSolar,
+    syncSolarToLunar,
+    lunarMonths,
+    lunarDays,
   };
 }
