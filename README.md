@@ -364,8 +364,22 @@ cd peixuan-worker && npx vitest run src/calculation/bazi/__tests__/tenGods.test.
 
 ---
 
+## 來源與差異說明
+
+本專案 Fork 自 [iim0663418/Peixuan](https://github.com/iim0663418/Peixuan)，感謝原作者的開源貢獻。
+
+由於原作的八字排盤方式與本人所學有所不同，紫微斗數命盤排法亦有若干差異，故在原作基礎上依照本人所用的方法重新實作排盤邏輯，主要調整如下：
+
+- **八字四柱**：依照本人所學的排盤規則重新實作，與原作計算方式不同
+- **紫微斗數**：命盤排法依本人所用版本調整，與原作在部分星曜定位或宮位計算上有所差異
+
+如需了解原作版本，請參閱原始 Repository。
+
+---
+
 ## 致謝
 
+- [iim0663418/Peixuan](https://github.com/iim0663418/Peixuan) - 本專案原始來源
 - [lunar-typescript](https://github.com/6tail/lunar-typescript) - 農曆計算庫
 - [Cloudflare](https://cloudflare.com/) - Edge Computing 平台
 - [Google Gemini](https://ai.google.dev/) - AI 主引擎
