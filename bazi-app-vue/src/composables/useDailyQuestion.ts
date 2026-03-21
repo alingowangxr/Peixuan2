@@ -138,10 +138,12 @@ export function useDailyQuestion(chartId: string) {
                 if (data.data.hasMemoryContext) {
                   hasMemoryContext.value = true;
                   memoryReference.value = data.data.memoryReference || '';
-                  console.log('[useDailyQuestion] Memory metadata received:', {
-                    hasMemoryContext: hasMemoryContext.value,
-                    memoryReference: memoryReference.value,
-                  });
+                  if (import.meta.env.DEV) {
+                    console.log('[useDailyQuestion] Memory metadata received:', {
+                      hasMemoryContext: hasMemoryContext.value,
+                      memoryReference: memoryReference.value,
+                    });
+                  }
                 }
               } else if (data.state) {
                 // Handle state updates from agentic backend

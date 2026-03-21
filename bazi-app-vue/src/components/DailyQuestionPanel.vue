@@ -304,7 +304,7 @@ const askQuestion = async () => {
     scrollToBottom();
   } catch (error) {
     // User canceled, do nothing
-    console.log('User canceled question');
+    // User canceled, nothing to do
   }
 };
 

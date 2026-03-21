@@ -66,7 +66,6 @@ class AstrologyIntegrationService {
         );
         if (baziChart) {
           requestData.baziChart = baziChart;
-          console.log('從 sessionStorage 獲取並添加八字命盤資料');
         }
 
         // 獲取並添加紫微斗數命盤資料
@@ -75,11 +74,8 @@ class AstrologyIntegrationService {
         );
         if (purpleStarChart) {
           requestData.purpleStarChart = purpleStarChart;
-          console.log('從 sessionStorage 獲取並添加紫微斗數命盤資料');
         }
       }
-
-      console.log('發送整合分析請求:', requestData);
 
       // 發送API請求
       const response = await axios.post<IntegratedAnalysisResponse>(

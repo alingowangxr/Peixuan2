@@ -3,6 +3,7 @@
  * Unified Markdown Rendering Utility
  */
 
+import DOMPurify from 'dompurify';
 import { marked } from 'marked';
 import { setupKeywordHighlighting } from '@/utils/keywordHighlighting';
 
@@ -27,9 +28,7 @@ export const parseMarkdown = (content: string): string => {
 
   try {
     const html = marked.parse(content) as string;
-    // TODO: 考慮添加 DOMPurify 進行 XSS 防護
-    // return DOMPurify.sanitize(html)
-    return html;
+    return DOMPurify.sanitize(html);
   } catch (error) {
     console.warn('Markdown parsing error:', error);
     return content; // 回退到原始內容

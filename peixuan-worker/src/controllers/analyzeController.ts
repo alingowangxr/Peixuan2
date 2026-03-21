@@ -156,7 +156,6 @@ export class AnalyzeController {
    * @returns ReadableStream in SSE format
    */
   async analyzeStream(chartId: string, env: { DB: D1Database }, locale = 'zh-TW', force = false): Promise<ReadableStream> {
-    console.log('[analyzeStream] Entry, chartId:', chartId, 'locale:', locale);
 
     const encoder = new TextEncoder();
     // HOTFIX: Add analysis mode to cache key to prevent personality/fortune cross-contamination
@@ -174,7 +173,6 @@ export class AnalyzeController {
           const loadingMessage = getLoadingMessage(locale);
           const sseData = `data: ${JSON.stringify({ text: loadingMessage })}\n\n`;
           controller.enqueue(encoder.encode(sseData));
-          console.log('[analyzeStream] Loading message sent, locale:', locale);
 
           // Step 0: Check analysis cache first (Daily Consistency Policy - always check cache)
           const analysisCacheService = new AnalysisCacheService();
@@ -182,9 +180,7 @@ export class AnalyzeController {
 
           if (cachedAnalysis) {
             if (force) {
-              console.log('[analyzeStream] Force refresh requested but ignored due to Daily Consistency Policy');
             } else {
-              console.log('[analyzeStream] Cache hit! Returning cached analysis');
             }
             await sendCachedAnalysis(cachedAnalysis, controller, encoder, force);
             controller.enqueue(encoder.encode('data: [DONE]\n\n'));
@@ -195,7 +191,6 @@ export class AnalyzeController {
           // Step 1: Read chart data from D1
           const chartCacheService = new ChartCacheService();
           const chart = await chartCacheService.getChart(chartId, env);
-          console.log('[analyzeStream] After getChart, found:', !!chart);
 
           if (!chart) {
             const errorData = `data: ${JSON.stringify({ error: 'Chart not found' })}\n\n`;
@@ -211,13 +206,10 @@ export class AnalyzeController {
           const markdown = formatToMarkdown(calculation, { excludeSteps: true, personalityOnly: true });
 
           // Step 3: Build prompt and call AI service with fallback support
-          console.log('[analyzeStream] Before buildAnalysisPrompt');
           const prompt = buildAnalysisPrompt(markdown, locale);
 
-          console.log('[analyzeStream] Before AI service generateStream');
           const aiOptions: AIOptions = { locale };
           const { stream: aiStream, metadata } = await aiServiceManager.generateStream(prompt, aiOptions);
-          console.log('[analyzeStream] AI service succeeded, provider:', metadata.provider, 'fallback:', metadata.fallbackTriggered);
 
           // Step 4: Process AI stream using unified method
           const fullText = await self.processAIStream(
@@ -248,7 +240,6 @@ export class AnalyzeController {
       }
     });
   }
-
 
   /**
    * Process AI stream and convert to SSE format
@@ -298,8 +289,6 @@ export class AnalyzeController {
     const decoder = new TextDecoder();
     const encoder = new TextEncoder();
 
-    console.log('[transformToSSE] Starting stream transformation for chartId:', chartId);
-
     const self = this; // Capture 'this' context
     return new ReadableStream({
       async start(controller) {
@@ -308,7 +297,7 @@ export class AnalyzeController {
           const buffer = await accumulateStreamBuffer(reader, decoder);
 
           // Parse and send response
-          const fullText = parseAndSendGeminiResponse(
+          const fullText = await parseAndSendGeminiResponse(
             buffer,
             controller,
             encoder,
@@ -341,7 +330,6 @@ export class AnalyzeController {
     env: { DB: D1Database }
   ): Promise<void> {
     if (fullText) {
-      console.log('[saveAnalysisToCache] Saving analysis to cache');
       const analysisCacheService = new AnalysisCacheService();
       await analysisCacheService.saveAnalysis(
         chartId,
@@ -349,7 +337,6 @@ export class AnalyzeController {
         { text: fullText },
         env
       );
-      console.log('[saveAnalysisToCache] Analysis saved successfully');
     }
   }
 
@@ -377,16 +364,13 @@ export class AnalyzeController {
    * @returns ReadableStream in SSE format
    */
   async analyzeAdvancedStream(chartId: string, env: { DB: D1Database }, locale = 'zh-TW', force = false): Promise<ReadableStream> {
-    console.log('[analyzeAdvancedStream] Entry, chartId:', chartId, 'locale:', locale);
 
     // HOTFIX: Add analysis mode to cache key to prevent personality/fortune cross-contamination
     const analysisType = `ai-advanced-${locale}-fortune`;
     const cachedAnalysis = await this.advancedAnalysisCacheService.getAnalysis(chartId, analysisType, env);
     if (cachedAnalysis) {
       if (force) {
-        console.log('[analyzeAdvancedStream] Force refresh requested but ignored due to Daily Consistency Policy');
       } else {
-        console.log('[analyzeAdvancedStream] Cache hit! Returning cached analysis');
       }
       const cachedText = typeof cachedAnalysis.result === 'string'
         ? cachedAnalysis.result
@@ -396,7 +380,6 @@ export class AnalyzeController {
 
     // Step 1: Read chart data from D1
     const chart = await this.chartCacheService.getChart(chartId, env);
-    console.log('[analyzeAdvancedStream] After getChart, found:', !!chart);
     if (!chart) {
       throw new Error('Chart not found');
     }
@@ -405,20 +388,13 @@ export class AnalyzeController {
     const calculation: CalculationResult = typeof chart.chartData === 'string'
       ? JSON.parse(chart.chartData)
       : chart.chartData;
-    console.log('[analyzeAdvancedStream] calculation keys:', Object.keys(calculation));
-    console.log('[analyzeAdvancedStream] calculation.bazi:', !!calculation.bazi);
-    console.log('[analyzeAdvancedStream] calculation.ziwei:', !!calculation.ziwei);
     const advancedMarkdown = formatAdvancedMarkdown(calculation);
-    console.log('[analyzeAdvancedStream] advancedMarkdown length:', advancedMarkdown.length);
 
     // Step 3: Build prompt and call AI service with fallback support
-    console.log('[analyzeAdvancedStream] Before buildAdvancedAnalysisPrompt');
     const prompt = buildAdvancedAnalysisPrompt(advancedMarkdown, locale);
 
-    console.log('[analyzeAdvancedStream] Before AI service generateStream');
     const aiOptions: AIOptions = { locale };
     const { stream: aiStream, metadata } = await this.aiServiceManager.generateStream(prompt, aiOptions);
-    console.log('[analyzeAdvancedStream] AI service succeeded, provider:', metadata.provider, 'fallback:', metadata.fallbackTriggered);
 
     // Step 4: Transform to SSE format with advanced cache
     return this.transformAdvancedToSSE(aiStream, chartId, analysisType, env, metadata.provider);
@@ -446,8 +422,6 @@ export class AnalyzeController {
   ): ReadableStream {
     const encoder = new TextEncoder();
 
-    console.log('[transformAdvancedToSSE] Starting stream transformation for chartId:', chartId, 'analysisType:', analysisType, 'provider:', provider);
-
     const self = this; // Capture 'this' context
     return new ReadableStream({
       async start(controller) {
@@ -462,7 +436,6 @@ export class AnalyzeController {
 
           // Save complete advanced analysis to D1
           if (fullText) {
-            console.log('[transformAdvancedToSSE] Saving advanced analysis to cache');
             const advancedAnalysisCacheService = new AdvancedAnalysisCacheService();
             await advancedAnalysisCacheService.saveAnalysis(
               chartId,
@@ -470,11 +443,9 @@ export class AnalyzeController {
               { text: fullText },
               env
             );
-            console.log('[transformAdvancedToSSE] Advanced analysis saved successfully');
           }
 
           // Send completion event
-          console.log('[transformAdvancedToSSE] Sending completion event');
           controller.enqueue(encoder.encode('data: [DONE]\n\n'));
           controller.close();
         } catch (error) {

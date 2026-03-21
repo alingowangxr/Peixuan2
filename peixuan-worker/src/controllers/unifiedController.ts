@@ -55,12 +55,10 @@ export class UnifiedController {
 
       // Step 4: Always generate chartId
       const chartId = crypto.randomUUID();
-      console.log('[UnifiedController] Generated chartId:', chartId);
 
       // Step 5: Try to save to D1 if env is provided (with error handling)
       if (env) {
         try {
-          console.log('[UnifiedController] Attempting to save chart to D1...');
           await this.chartCacheService.saveChart(
             chartId,
             result,
@@ -72,13 +70,11 @@ export class UnifiedController {
             },
             env
           );
-          console.log('[UnifiedController] Chart saved to D1 successfully');
         } catch (saveError) {
           console.error('[UnifiedController] Failed to save chart to D1:', saveError);
           // Continue execution even if save fails
         }
       } else {
-        console.log('[UnifiedController] No env provided, skipping D1 save');
       }
 
       // Step 6: Format output based on requested format
@@ -87,7 +83,6 @@ export class UnifiedController {
       }
 
       // Step 7: Always return with chartId for JSON format
-      console.log('[UnifiedController] Returning result with chartId');
       return {
         chartId,
         ...result

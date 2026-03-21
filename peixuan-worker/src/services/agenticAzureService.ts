@@ -136,7 +136,6 @@ export class AgenticAzureService {
    * @returns Observation string
    */
   private async executeTool(functionName: string, calculationResult: CalculationResult, locale = 'zh-TW'): Promise<string> {
-    console.log(`[AgenticAzure] Executing tool: ${functionName}`);
 
     switch (functionName) {
       case 'get_bazi_profile':
@@ -494,8 +493,6 @@ export class AgenticAzureService {
     const encoder = new TextEncoder();
     const self = this;
 
-    console.log(`[AgenticAzure] generateDailyInsight called with locale: ${locale}`);
-
     return new ReadableStream({
       async start(controller) {
         // Analytics tracking state
@@ -510,7 +507,6 @@ export class AgenticAzureService {
         }> = [];
 
         try {
-          console.log(`[AgenticAzure] Stream started, locale: ${locale}`);
 
           // Send memory metadata event first (if available)
           if (options?.hasMemoryContext && options?.memoryReference) {
@@ -522,10 +518,6 @@ export class AgenticAzureService {
               }
             })}\n\n`;
             controller.enqueue(encoder.encode(metadataEvent));
-            console.log('[AgenticAzure] Memory metadata sent:', {
-              hasMemoryContext: true,
-              memoryReference: options.memoryReference
-            });
           }
 
           // Initialize conversation history
@@ -543,7 +535,6 @@ export class AgenticAzureService {
 
           // System prompt for ReAct agent
           const systemPrompt = self.buildSystemPrompt(locale, historyContext);
-          console.log(`[AgenticAzure] System prompt generated (first 100 chars): ${systemPrompt.substring(0, 100)}`);
 
           // Add system message
           conversationHistory.push({
@@ -562,7 +553,6 @@ export class AgenticAzureService {
 
           while (iteration < self.maxIterations) {
             iteration++;
-            console.log(`[AgenticAzure] ReAct iteration ${iteration}/${self.maxIterations}, locale: ${locale}`);
 
             // Send status update with locale-specific message
             const thinkingMsg = locale === 'zh-TW'
@@ -579,7 +569,6 @@ export class AgenticAzureService {
 
             if (toolCalls && toolCalls.length > 0) {
               // Execute tool calls and add responses
-              console.log(`[AgenticAzure] Executing ${toolCalls.length} tool calls`);
 
               // Send action update with locale-specific message
               const separator = locale === 'zh-TW' ? '、' : ', ';
@@ -660,7 +649,6 @@ export class AgenticAzureService {
               const text = self.extractContent(response);
               if (text) {
                 finalAnswer = text;
-                console.log(`[AgenticAzure] Final answer received`);
 
                 // Send final answer
                 const chunks = self.splitIntoChunks(text, 50);
@@ -987,13 +975,11 @@ Guidelines:
     const isAnalyticsEnabled = options?.env?.ENABLE_ANALYTICS_LOGGING === 'true';
 
     if (!isAnalyticsEnabled) {
-      console.log('[AgenticAzure] Analytics logging disabled (ENABLE_ANALYTICS_LOGGING != "true")');
       return;
     }
 
     // Check if we have required dependencies
     if (!options?.env?.DB || !options?.ctx) {
-      console.log('[AgenticAzure] Analytics logging skipped (missing env.DB or ctx)');
       return;
     }
 
@@ -1022,7 +1008,6 @@ Guidelines:
             steps
           });
 
-          console.log('[AgenticAzure] Analytics logged successfully (fallback scenario)');
         } catch (error) {
           // Silent failure - analytics should never break the main flow
           console.error('[AgenticAzure] Analytics logging error (non-blocking):', error);

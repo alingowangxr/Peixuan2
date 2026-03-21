@@ -59,6 +59,7 @@ export interface PurpleStarChart {
   fiveElementsBureau?: string; // 五行局，例如 "水二局"
   daXian?: DaXianInfo[]; // 大限資訊
   xiaoXian?: XiaoXianInfo[]; // 小限資訊 (例如到100歲)
+  liuNian?: LiuNianTaiSuiInfo[]; // 流年太歲宮資訊
   // 其他命盤資訊，如命主、身主等
 }
 
@@ -229,13 +230,6 @@ class PurpleStarCalculator {
     const { mingPalaceGan } = this;
     const mingPalaceZhi = this.ZHI_NAMES[this.mingPalaceStdIndex];
     const mingGanZhi = mingPalaceGan + mingPalaceZhi;
-
-    console.log('命宮干支計算:', {
-      mingPalaceGan,
-      mingPalaceZhi,
-      mingGanZhi,
-      mingPalaceStdIndex: this.mingPalaceStdIndex,
-    });
 
     // 完整的60甲子五行局對照表（基於傳統紫微斗數納音五行）
     if (
@@ -631,14 +625,39 @@ class PurpleStarCalculator {
         palaceIndex: currentPalaceZhiIndex,
       });
     }
-    console.log(
-      'Calculated XiaoXian (up to age 10):',
-      xiaoXianList.slice(0, 10),
-    );
     return xiaoXianList;
   }
 
-  // TODO: 實作流年太歲的計算
+  // 流年太歲宮：每年太歲所在宮位由流年地支決定（流年地支對應命盤中相同地支的宮位）
+  public calculateLiuNianTaiSui(
+    palaces: Palace[],
+    startYear?: number,
+    count = 12,
+  ): LiuNianTaiSuiInfo[] {
+    const baseYear = startYear ?? (new Date().getFullYear() - 2);
+    // Pre-index palaces by branch index for O(1) lookup
+    const palaceByBranch = new Map(palaces.map((p) => [p.index, p]));
+    const liuNianList: LiuNianTaiSuiInfo[] = [];
+
+    for (let i = 0; i < count; i++) {
+      const year = baseYear + i;
+      // 4 CE (甲子) is the anchor of the 60-year stem-branch cycle
+      const stemIndex = ((year - 4) % 10 + 10) % 10;
+      const branchIndex = ((year - 4) % 12 + 12) % 12;
+      const taiSuiPalace = palaceByBranch.get(branchIndex);
+      if (!taiSuiPalace) continue;
+
+      liuNianList.push({
+        year,
+        ganZhi: this.GAN_NAMES[stemIndex] + this.ZHI_NAMES[branchIndex],
+        palaceName: taiSuiPalace.name,
+        palaceZhi: this.ZHI_NAMES[branchIndex],
+        palaceIndex: branchIndex,
+      });
+    }
+
+    return liuNianList;
+  }
 
   private determinePalaceAttributes(palaces: Palace[]): void {
     /* ... */
@@ -646,6 +665,7 @@ class PurpleStarCalculator {
   private assembleChart(palaces: Palace[]): PurpleStarChart {
     const daXian = this.calculateDaXian(palaces);
     const xiaoXian = this.calculateXiaoXian(palaces);
+    const liuNian = this.calculateLiuNianTaiSui(palaces);
     return {
       palaces,
       mingPalaceIndex: this.mingPalaceStdIndex,
@@ -654,6 +674,7 @@ class PurpleStarCalculator {
       fiveElementsBureau: this.fiveElementsBureau,
       daXian,
       xiaoXian,
+      liuNian,
     };
   }
   public generateChart(): PurpleStarChart {
@@ -678,5 +699,4 @@ const exampleBirthInfo: BirthInfo = {
 };
 const calculator = new PurpleStarCalculator(exampleBirthInfo);
 const purpleStarChart = calculator.generateChart();
-console.log('Final Purple Star Chart:', JSON.stringify(purpleStarChart, null, 2));
 */

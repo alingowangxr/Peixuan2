@@ -258,7 +258,6 @@ export class GeminiService implements AIProvider {
       }
 
       const backoff = Math.pow(2, attempt) * 1000;
-      console.log(`${logPrefix} Retrying in ${backoff}ms...`);
       await this.sleep(backoff);
     }
 
@@ -270,9 +269,7 @@ export class GeminiService implements AIProvider {
    */
   private logAttempt(attempt: number, url: string, logPrefix: string): void {
     if (attempt > 1) {
-      console.log(`${logPrefix} Retry attempt ${attempt}/${this.maxRetries}...`);
     } else {
-      console.log(`${logPrefix} Fetching URL: ${url}`);
     }
   }
 
@@ -280,12 +277,10 @@ export class GeminiService implements AIProvider {
    * Handle successful streaming response
    */
   private handleSuccessfulResponse(response: Response, logPrefix: string): ReadableStream {
-    console.log(`${logPrefix} Response status: ${response.status} ${response.statusText}`);
     if (!response.body) {
       console.error(`${logPrefix} No response body received`);
       throw new Error('No response body from Gemini streaming API');
     }
-    console.log(`${logPrefix} Stream established successfully`);
     return response.body;
   }
 
@@ -362,7 +357,6 @@ export class GeminiService implements AIProvider {
     }
 
     const backoff = Math.pow(2, attempt) * 1000;
-    console.log(`Exception: ${err.message}. Retrying in ${backoff}ms...`);
   }
 
   /**
@@ -431,14 +425,12 @@ export class GeminiService implements AIProvider {
       if (!response.ok) {
         const error = await response.text();
         const errorTime = Date.now();
-        console.log(`[Gemini] Error at ${new Date(errorTime).toISOString()} | Status: ${response.status} | Response time: ${errorTime - startTime}ms`);
         throw new Error(`Gemini API error (${response.status}): ${error}`);
       }
 
       const data = await response.json() as GeminiApiResponse;
 
       // Debug: log response structure
-      console.log('[Gemini] Response structure:', JSON.stringify(data, null, 2).substring(0, 500));
 
       // Extract text from response
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
@@ -459,14 +451,11 @@ export class GeminiService implements AIProvider {
       const responseTime = Date.now() - startTime;
       if (usage) {
         const estimatedCost = (usage.promptTokens * 0.000075 + usage.completionTokens * 0.0003) / 1000;
-        console.log(`[Gemini] Token usage | Prompt: ${usage.promptTokens} | Completion: ${usage.completionTokens} | Total: ${usage.totalTokens} | Cost: $${estimatedCost.toFixed(6)}`);
       }
-      console.log(`[Gemini] Response time: ${responseTime}ms`);
 
       return { text, usage };
     } catch (error) {
       const errorTime = Date.now();
-      console.log(`[Gemini] Error at ${new Date(errorTime).toISOString()} | Response time: ${errorTime - startTime}ms | Error: ${error}`);
       throw error;
     }
   }

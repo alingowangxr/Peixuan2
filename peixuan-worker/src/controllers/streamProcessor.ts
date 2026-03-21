@@ -21,12 +21,9 @@ export async function processAzureStream(
   let fullText = '';
   let chunkCount = 0;
 
-  console.log(`${logPrefix} Processing Azure OpenAI text stream`);
-
   while (true) {
     const { done, value } = await reader.read();
     if (done) {
-      console.log(`${logPrefix} Azure stream done, total chunks:`, chunkCount);
       break;
     }
 
@@ -36,7 +33,6 @@ export async function processAzureStream(
       fullText += text;
       const sseData = `data: ${JSON.stringify({ text })}\n\n`;
       controller.enqueue(encoder.encode(sseData));
-      console.log(`${logPrefix} Chunk`, chunkCount, 'sent, length:', text.length);
     }
   }
 
@@ -61,41 +57,40 @@ export async function processGeminiStream(
   let buffer = '';
   let chunkCount = 0;
 
-  console.log(`${logPrefix} Processing Gemini JSON array stream`);
-
   // Step 1: Accumulate entire buffer
   while (true) {
     const { done, value } = await reader.read();
     if (done) {
-      console.log(`${logPrefix} Gemini stream done, total chunks received:`, chunkCount);
       break;
     }
 
     chunkCount++;
-    console.log(`${logPrefix} Chunk`, chunkCount, 'received, bytes:', value.length);
     buffer += decoder.decode(value, { stream: true });
   }
 
-  console.log(`${logPrefix} Complete buffer accumulated, size:`, buffer.length);
-
-  // Step 2: Parse and send JSON array
-  return parseAndSendGeminiResponse(buffer, controller, encoder, logPrefix);
+  // Step 2: Parse and send JSON array (async — adds inter-chunk delays)
+  return await parseAndSendGeminiResponse(buffer, controller, encoder, logPrefix);
 }
 
 /**
- * Parse Gemini JSON response and send via SSE
+ * Parse Gemini JSON response and send via SSE with streaming delays.
+ * Gemini returns the full response as a JSON array after buffering; we
+ * replay it chunk-by-chunk with a short delay so the frontend receives
+ * events spread over time, enabling the cursor animation and preventing
+ * Vue from batch-collapsing all updates into a single render tick.
+ *
  * @param buffer - Accumulated response buffer
  * @param controller - ReadableStream controller
  * @param encoder - TextEncoder instance
  * @param logPrefix - Prefix for console logs
  * @returns Full text extracted
  */
-export function parseAndSendGeminiResponse(
+export async function parseAndSendGeminiResponse(
   buffer: string,
   controller: ReadableStreamDefaultController,
   encoder: TextEncoder,
   logPrefix: string
-): string {
+): Promise<string> {
   let fullText = '';
 
   try {
@@ -105,24 +100,20 @@ export function parseAndSendGeminiResponse(
       throw new Error('Expected JSON array from Gemini API');
     }
 
-    console.log(`${logPrefix} Parsed JSON array, length:`, jsonArray.length);
-
-    // Extract and send text from each object
-    for (let i = 0; i < jsonArray.length; i++) {
-      const obj = jsonArray[i];
-      const text = obj?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    // Extract and send text from each object, with a delay between chunks
+    // so the browser receives events spread over time rather than all at once.
+    for (const obj of jsonArray) {
+      const text: string = obj?.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
       if (text) {
         fullText += text;
-        console.log(`${logPrefix} Object`, i + 1, '- text chunk extracted, length:', text.length);
         const sseData = `data: ${JSON.stringify({ text })}\n\n`;
         controller.enqueue(encoder.encode(sseData));
-      } else {
-        console.log(`${logPrefix} Object`, i + 1, '- no text content found');
+        // ~15ms delay gives ~65 chunks/sec — visible streaming without lag
+        await new Promise(resolve => setTimeout(resolve, 15));
       }
     }
 
-    console.log(`${logPrefix} All text chunks sent, total text length:`, fullText.length);
   } catch (parseError) {
     console.error(`${logPrefix} JSON parse failed:`, parseError);
     console.error(`${logPrefix} Buffer preview:`, buffer.substring(0, 500));
@@ -148,16 +139,13 @@ export async function accumulateStreamBuffer(
   while (true) {
     const { done, value } = await reader.read();
     if (done) {
-      console.log('[accumulateStreamBuffer] Stream done, total chunks received:', chunkCount);
       break;
     }
 
     chunkCount++;
-    console.log('[accumulateStreamBuffer] Chunk', chunkCount, 'received, bytes:', value.length);
     buffer += decoder.decode(value, { stream: true });
   }
 
-  console.log('[accumulateStreamBuffer] Complete buffer accumulated, size:', buffer.length);
   return buffer;
 }
 
@@ -173,7 +161,6 @@ export function createCachedSSEStream(cachedText: string, forceRequested?: boole
 
   return new ReadableStream({
     async start(controller) {
-      console.log('[createCachedSSEStream] Sending', lines.length, 'cached lines');
 
       // Send consistency metadata if force was requested but ignored
       if (forceRequested) {
@@ -197,7 +184,6 @@ export function createCachedSSEStream(cachedText: string, forceRequested?: boole
       // Send [DONE] signal
       controller.enqueue(encoder.encode('data: [DONE]\n\n'));
       controller.close();
-      console.log('[createCachedSSEStream] Stream complete');
     }
   });
 }

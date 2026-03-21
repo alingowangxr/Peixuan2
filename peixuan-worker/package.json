@@ -16,7 +16,7 @@
 		"db:migrate:production": "wrangler d1 migrations apply peixuan-db --env production"
 	},
 	"devDependencies": {
-		"@cloudflare/vitest-pool-workers": "^0.8.19",
+		"@cloudflare/vitest-pool-workers": "^0.13.3",
 		"@cloudflare/workers-types": "^4.20251216.0",
 		"@eslint/js": "^9.17.0",
 		"@typescript-eslint/eslint-plugin": "^8.18.2",
@@ -31,7 +31,7 @@
 	"dependencies": {
 		"@cloudflare/kv-asset-handler": "^0.4.1",
 		"date-fns": "^4.1.0",
-		"drizzle-kit": "^0.18.1",
+		"drizzle-kit": "^0.31.10",
 		"drizzle-orm": "^0.44.7",
 		"drizzle-zod": "^0.8.3",
 		"itty-router": "^5.0.22",

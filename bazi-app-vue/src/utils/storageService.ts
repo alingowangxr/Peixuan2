@@ -202,7 +202,6 @@ export const saveTransformationStarsData = (
       );
     }
 
-    console.log('四化飛星資料已保存到 sessionStorage (包含多層次能量資料)');
   } catch (error) {
     console.error('保存四化飛星資料失敗:', error);
   }

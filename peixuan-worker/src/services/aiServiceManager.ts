@@ -45,16 +45,12 @@ export class AIServiceManager {
     const startTime = Date.now();
 
     try {
-      console.log(`[AI Manager] Attempting primary provider: ${this.primaryProvider.getName()}`);
       const stream = await this.primaryProvider.generateStream(prompt, {
         ...options,
         timeout: options?.timeout ?? this.timeout,
       });
 
       const latencyMs = Date.now() - startTime;
-      console.log(
-        `[AI Manager] Primary provider succeeded in ${latencyMs}ms: ${this.primaryProvider.getName()}`,
-      );
 
       return {
         stream,
@@ -77,9 +73,6 @@ export class AIServiceManager {
 
       // Try fallback provider
       if (this.fallbackProvider && this.fallbackProvider.isAvailable()) {
-        console.log(
-          `[AI Manager] Switching to fallback provider: ${this.fallbackProvider.getName()}`,
-        );
 
         try {
           const fallbackStartTime = Date.now();
@@ -90,10 +83,6 @@ export class AIServiceManager {
 
           const latencyMs = Date.now() - fallbackStartTime;
           const totalLatencyMs = Date.now() - startTime;
-
-          console.log(
-            `[AI Manager] Fallback provider succeeded in ${latencyMs}ms (total: ${totalLatencyMs}ms): ${this.fallbackProvider.getName()}`,
-          );
 
           return {
             stream,
@@ -128,16 +117,12 @@ export class AIServiceManager {
     const startTime = Date.now();
 
     try {
-      console.log(`[AI Manager] Attempting primary provider: ${this.primaryProvider.getName()}`);
       const response = await this.primaryProvider.generate(prompt, {
         ...options,
         timeout: options?.timeout ?? this.timeout,
       });
 
       const latencyMs = Date.now() - startTime;
-      console.log(
-        `[AI Manager] Primary provider succeeded in ${latencyMs}ms: ${this.primaryProvider.getName()}`,
-      );
 
       return {
         ...response,
@@ -160,9 +145,6 @@ export class AIServiceManager {
 
       // Try fallback provider
       if (this.fallbackProvider && this.fallbackProvider.isAvailable()) {
-        console.log(
-          `[AI Manager] Switching to fallback provider: ${this.fallbackProvider.getName()}`,
-        );
 
         try {
           const response = await this.fallbackProvider.generate(prompt, {
@@ -171,9 +153,6 @@ export class AIServiceManager {
           });
 
           const totalLatencyMs = Date.now() - startTime;
-          console.log(
-            `[AI Manager] Fallback provider succeeded (total: ${totalLatencyMs}ms): ${this.fallbackProvider.getName()}`,
-          );
 
           return {
             ...response,
@@ -202,36 +181,26 @@ export class AIServiceManager {
    */
   private shouldTryFallback(error: unknown): boolean {
     if (!this.enableFallback) {
-      console.log('[AI Manager] Fallback disabled, not attempting fallback');
       return false;
     }
 
     if (!this.fallbackProvider) {
-      console.log('[AI Manager] No fallback provider configured');
       return false;
     }
 
     if (!this.fallbackProvider.isAvailable()) {
-      console.log('[AI Manager] Fallback provider not available');
       return false;
     }
 
     // Check if error is retryable
     if (error instanceof AIProviderError) {
       if (error.isRetryable()) {
-        console.log(
-          `[AI Manager] Error is retryable (${error.code}), attempting fallback`,
-        );
         return true;
       }
-      console.log(
-        `[AI Manager] Error is not retryable (${error.code}), not attempting fallback`,
-      );
       return false;
     }
 
     // For unknown errors, try fallback as a safety measure
-    console.log('[AI Manager] Unknown error type, attempting fallback as precaution');
     return true;
   }
 
@@ -261,6 +230,5 @@ export class AIServiceManager {
    */
   setFallbackEnabled(enabled: boolean): void {
     this.enableFallback = enabled;
-    console.log(`[AI Manager] Fallback ${enabled ? 'enabled' : 'disabled'}`);
   }
 }

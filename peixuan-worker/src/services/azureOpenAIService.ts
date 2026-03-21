@@ -150,11 +150,7 @@ export class AzureOpenAIService implements AIProvider {
         if (usage) {
           const estimatedCost =
             (usage.promptTokens * 0.15 + usage.completionTokens * 0.6) / 1000000;
-          console.log(
-            `[Azure OpenAI] Token usage | Prompt: ${usage.promptTokens} | Completion: ${usage.completionTokens} | Total: ${usage.totalTokens} | Est. Cost: $${estimatedCost.toFixed(6)}`,
-          );
         }
-        console.log(`[Azure OpenAI] Response time: ${latencyMs}ms`);
 
         return {
           text,
@@ -171,7 +167,6 @@ export class AzureOpenAIService implements AIProvider {
         }
         // Exponential backoff
         const backoff = Math.pow(2, attempt) * 1000;
-        console.log(`[Azure OpenAI] Retry attempt ${attempt}/${this.maxRetries} in ${backoff}ms`);
         await this.sleep(backoff);
       }
     }
@@ -258,9 +253,6 @@ export class AzureOpenAIService implements AIProvider {
   ): Promise<ReadableStream> {
     for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
       try {
-        console.log(
-          `[Azure OpenAI Stream] ${attempt > 1 ? `Retry attempt ${attempt}/${this.maxRetries}` : 'Fetching URL'}: ${url}`,
-        );
 
         const response = await this.fetchWithTimeout(url, body, customTimeout);
 
@@ -271,9 +263,6 @@ export class AzureOpenAIService implements AIProvider {
               AIErrorCode.UNKNOWN_ERROR,
             );
           }
-          console.log(
-            `[Azure OpenAI Stream] Stream established successfully (Status: ${response.status})`,
-          );
           return this.transformStream(response.body);
         }
 
@@ -283,7 +272,6 @@ export class AzureOpenAIService implements AIProvider {
           throw error;
         }
         const backoff = Math.pow(2, attempt) * 1000;
-        console.log(`[Azure OpenAI Stream] Retrying in ${backoff}ms...`);
         await this.sleep(backoff);
       }
     }

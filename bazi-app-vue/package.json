@@ -21,6 +21,7 @@
     "@vueuse/core": "^14.1.0",
     "axios": "^1.9.0",
     "chart.js": "^4.4.9",
+    "dompurify": "^3.3.3",
     "element-plus": "^2.10.1",
     "lunar-typescript": "^1.8.6",
     "marked": "^17.0.1",
@@ -33,6 +34,7 @@
   },
   "devDependencies": {
     "@fullhuman/postcss-purgecss": "^7.0.2",
+    "@types/dompurify": "^3.0.5",
     "@types/node": "^22.15.30",
     "@typescript-eslint/eslint-plugin": "^8.34.0",
     "@typescript-eslint/parser": "^8.34.0",

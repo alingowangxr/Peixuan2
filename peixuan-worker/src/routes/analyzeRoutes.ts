@@ -23,12 +23,9 @@ function configureAzureFallback(env: Env): AzureOpenAIService | undefined {
   const azureApiKey = env.AZURE_OPENAI_API_KEY?.trim();
 
   if (!azureApiKey || !azureEndpoint || azureEndpoint === '') {
-    console.log('[AI Services] Azure OpenAI fallback not configured (missing credentials)');
     if (!azureApiKey) {
-      console.log('[AI Services] Missing AZURE_OPENAI_API_KEY');
     }
     if (!azureEndpoint || azureEndpoint === '') {
-      console.log('[AI Services] Missing or empty AZURE_OPENAI_ENDPOINT');
     }
     return undefined;
   }
@@ -39,10 +36,6 @@ function configureAzureFallback(env: Env): AzureOpenAIService | undefined {
     deployment: env.AZURE_OPENAI_DEPLOYMENT || 'gpt-4.1-mini',
     apiVersion: env.AZURE_OPENAI_API_VERSION || '2024-08-01-preview',
   });
-
-  console.log('[AI Services] Azure OpenAI fallback provider configured');
-  console.log('[AI Services] Endpoint:', azureEndpoint);
-  console.log('[AI Services] Deployment:', env.AZURE_OPENAI_DEPLOYMENT || 'gpt-4o-mini');
 
   return service;
 }
@@ -69,9 +62,6 @@ function initializeAIServices(env: Env): { manager: AIServiceManager } {
     maxRetries: 3,
     timeout: env.AI_PROVIDER_TIMEOUT_MS || 45000,
   });
-
-  console.log('[AI Services] Initialized with primary:', geminiService.getName(),
-    'fallback:', fallbackProvider?.getName() || 'none');
 
   return { manager };
 }
@@ -537,7 +527,6 @@ export function createAnalyzeRoutes(router: Router, env: Env, ctx: ExecutionCont
    * - Final event: "data: [DONE]\n\n"
    */
   router.post('/api/v1/daily-insight/stream', async (req: IRequest) => {
-    console.log('[daily-insight/stream] Route handler called');
     try {
       // Parse request body
       const body = await req.json() as { chartId?: string; question?: string; locale?: string };
@@ -548,12 +537,6 @@ export function createAnalyzeRoutes(router: Router, env: Env, ctx: ExecutionCont
       const normalizedLocale = locale.replace('_', '-');
 
       // Log only metadata, not the sensitive question content
-      console.log('[daily-insight/stream] Request received:', {
-        chartId,
-        hasQuestion: !!question,
-        questionLength: question?.length || 0,
-        locale: normalizedLocale
-      });
 
       // Validate required parameters
       if (!chartId) {
@@ -654,11 +637,6 @@ export function createAnalyzeRoutes(router: Router, env: Env, ctx: ExecutionCont
           }
         }
 
-        console.log('[Daily Insight] Memory metadata:', {
-          hasMemoryContext,
-          memoryReference,
-          contextLength: historyContext.length
-        });
       } catch (error) {
         console.error('[Daily Insight] Failed to fetch history context (non-blocking):', error);
         // Gracefully degrade - continue without context
@@ -670,7 +648,6 @@ export function createAnalyzeRoutes(router: Router, env: Env, ctx: ExecutionCont
       // Try Gemini first
       if (env.GEMINI_API_KEY) {
         try {
-          console.log('[Daily Insight] Using primary provider: Gemini');
           
           // Prepare Azure fallback service
           let azureFallback;
@@ -715,14 +692,12 @@ export function createAnalyzeRoutes(router: Router, env: Env, ctx: ExecutionCont
              error.message.toLowerCase().includes('unavailable'));
 
           if (shouldFallback && env.ENABLE_AI_FALLBACK !== false) {
-            console.log('[Daily Insight] Gemini service completely failed, attempting outer Azure fallback as safety net');
 
             // Configure Azure fallback as safety net
             const azureEndpoint = env.AZURE_OPENAI_ENDPOINT?.trim();
             const azureApiKey = env.AZURE_OPENAI_API_KEY?.trim();
 
             if (azureApiKey && azureEndpoint) {
-              console.log('[Daily Insight] Using outer fallback provider: Azure OpenAI');
               const azureService = new AgenticAzureService({
                 endpoint: azureEndpoint,
                 apiKey: azureApiKey,
@@ -740,9 +715,7 @@ export function createAnalyzeRoutes(router: Router, env: Env, ctx: ExecutionCont
                 { env, ctx, fallbackReason: error.message, chartId, hasMemoryContext, memoryReference }
               );
               usedFallback = true;
-              console.log('[Daily Insight] Successfully using Azure outer fallback');
             } else {
-              console.log('[Daily Insight] Azure fallback not configured (missing credentials)');
               throw error;
             }
           } else {
@@ -757,7 +730,6 @@ export function createAnalyzeRoutes(router: Router, env: Env, ctx: ExecutionCont
       }
 
       if (usedFallback) {
-        console.log('[Daily Insight] Successfully used Azure OpenAI fallback');
       }
 
       // Record the daily question (async, don't wait)

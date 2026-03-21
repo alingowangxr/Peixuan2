@@ -69,7 +69,6 @@ async function handleAPI(request: Request, env: Env, ctx: ExecutionContext): Pro
 
 	// Log incoming request for debugging
 	const url = new URL(request.url);
-	console.log(`[handleAPI] ${request.method} ${url.pathname}`);
 
 	return router.fetch(request, env);
 }
@@ -112,7 +111,6 @@ export default {
 				`DELETE FROM chart_records WHERE created_at < datetime('now', '-6 months')`
 			).run();
 
-			console.log(`[scheduled] Cleanup completed: ${result.meta.changes} chart records deleted (older than ${cutoffDate})`);
 		} catch (error: any) {
 			console.error('[scheduled] Chart cleanup failed:', error.message);
 		}

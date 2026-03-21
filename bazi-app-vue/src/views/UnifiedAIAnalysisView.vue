@@ -47,7 +47,6 @@ const stopStreaming = () => {
   if (streamAbortController) {
     streamAbortController.abort();
     streamAbortController = null;
-    console.log('[SSE] Stream aborted manually');
   }
 };
 
@@ -61,9 +60,24 @@ const getApiEndpoints = () => {
   };
 };
 
-const renderMarkdown = (text: string): string => {
-  return parseReportMarkdown(text);
-};
+// Rendered HTML with an inline blinking cursor during streaming
+const renderedHtml = computed(() => {
+  if (!displayedText.value) return '';
+
+  const sanitized = parseReportMarkdown(displayedText.value);
+
+  if (!isLoading.value || !hasContent.value) return sanitized;
+
+  // Insert the cursor before the last closing block tag so it appears
+  // inline with the last sentence, not floating below the paragraph.
+  const cursor = '<span class="writing-cursor" aria-hidden="true">▋</span>';
+  const lastClose = sanitized.match(/(<\/(p|li|h[1-6]|blockquote)>)\s*$/);
+  if (lastClose) {
+    const idx = sanitized.lastIndexOf(lastClose[1]);
+    return sanitized.slice(0, idx) + cursor + sanitized.slice(idx);
+  }
+  return sanitized + cursor;
+});
 
 const checkCache = async (chartId: string): Promise<boolean> => {
   try {
@@ -138,7 +152,6 @@ const startStreaming = async () => {
     if (generatedAt) {
       cacheTimestamp.value = generatedAt;
       isCached.value = true;
-      console.log('[SSE] Cache timestamp from header:', generatedAt);
     }
 
     if (!response.ok) {
@@ -151,61 +164,63 @@ const startStreaming = async () => {
     }
 
     const decoder = new TextDecoder();
+    // Buffer incomplete SSE events that span multiple TCP chunks.
+    // SSE events are delimited by \n\n — splitting by \n alone loses data
+    // when a chunk boundary cuts through the middle of a data: line.
+    let sseBuffer = '';
+
+    const loadingPrefixes = [
+      '好我看看～讓我仔細分析一下你的命盤...\n\n',
+      'Let me see~ I am analyzing your chart carefully...\n\n',
+    ];
+
+    const processEvent = (raw: string) => {
+      const line = raw.trim();
+      if (!line.startsWith('data: ')) return;
+
+      const eventData = line.slice(6);
+      if (eventData === '[DONE]') return;
+
+      const data = JSON.parse(eventData); // throws on malformed — caught by caller
+
+      if (data.error) {
+        console.error('[SSE] Backend error:', data.error);
+        error.value = data.error;
+        isLoading.value = false;
+        return;
+      }
+
+      if (data.text && !loadingPrefixes.includes(data.text)) {
+        analysisText.value += data.text;
+        displayedText.value = analysisText.value;
+        if (!hasContent.value && analysisText.value.trim().length > 0) {
+          hasContent.value = true;
+        }
+        progress.value = Math.min(progress.value + 2, 95);
+      }
+    };
 
     while (true) {
       const { done, value } = await reader.read();
       if (done) {
-        console.log('[SSE] Stream completed');
         progress.value = 100;
         isLoading.value = false;
         break;
       }
 
-      const chunk = decoder.decode(value, { stream: true });
-      const lines = chunk.split('\n');
+      sseBuffer += decoder.decode(value, { stream: true });
 
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          try {
-            const eventData = line.slice(6);
+      // Split on the SSE event separator \n\n.
+      // The last element may be an incomplete event — keep it in the buffer.
+      const events = sseBuffer.split('\n\n');
+      sseBuffer = events.pop() ?? '';
 
-            // Check for [DONE] signal
-            if (eventData === '[DONE]') {
-              continue;
-            }
-
-            const data = JSON.parse(eventData);
-
-            if (data.error) {
-              console.error('[SSE] Backend error:', data.error);
-              error.value = data.error;
-              isLoading.value = false;
-              return;
-            }
-
-            if (data.text) {
-              // Filter out backend loading prefix (not part of actual analysis)
-              const loadingPrefixes = [
-                '好我看看～讓我仔細分析一下你的命盤...\n\n',
-                'Let me see~ I am analyzing your chart carefully...\n\n',
-              ];
-              const isLoadingPrefix = loadingPrefixes.some(
-                (prefix) => data.text === prefix,
-              );
-
-              if (!isLoadingPrefix) {
-                analysisText.value += data.text;
-                displayedText.value = analysisText.value;
-                // Show content area as soon as first real text arrives
-                if (!hasContent.value && analysisText.value.trim().length > 0) {
-                  hasContent.value = true;
-                }
-              }
-              progress.value = Math.min(progress.value + 2, 95);
-            }
-          } catch {
-            // Ignore parse errors for malformed lines
-            console.debug('[SSE] Parse error for line:', line);
+      for (const event of events) {
+        try {
+          processEvent(event);
+        } catch {
+          if (import.meta.env.DEV) {
+            console.debug('[SSE] Parse error for event:', event);
           }
         }
       }
@@ -233,9 +248,6 @@ watch(
   analysisType,
   async (newType, oldType) => {
     if (newType && newType !== oldType) {
-      console.log(
-        `[AnalysisView] Analysis type changed from "${oldType}" to "${newType}". Restarting stream.`,
-      );
       await startStreaming();
     }
   },
@@ -375,19 +387,13 @@ onUnmounted(() => {
 
             <!-- 分析內容 — 串流期間即時顯示 -->
             <div v-if="hasContent || !isLoading" class="analysis-content">
-              <!-- Markdown 渲染 -->
+              <!-- Markdown 渲染（游標已內嵌於 renderedHtml 中） -->
               <!-- eslint-disable-next-line vue/no-v-html -->
               <div
                 class="markdown-body"
                 aria-live="polite"
-                v-html="renderMarkdown(displayedText)"
+                v-html="renderedHtml"
               />
-
-              <!-- 串流進行中指示器 -->
-              <div v-if="isLoading && hasContent" class="streaming-indicator">
-                <span class="streaming-dot" />
-                <span class="streaming-text">{{ $t(`${i18nPrefix}.loading_message`) || '分析撰寫中…' }}</span>
-              </div>
 
               <!-- 快取指示器 -->
               <CacheIndicator
@@ -604,45 +610,37 @@ html.dark .error-card {
   border-radius: var(--radius-lg) !important;
 }
 
-/* ========== 串流指示器 ========== */
-.streaming-indicator {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  padding: var(--space-lg) 0;
-  color: var(--peixuan-purple);
-  font-size: var(--font-size-sm);
-}
-
-.streaming-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--peixuan-purple);
-  animation: pulse 1.2s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 0.3; }
-  50% { opacity: 1; }
-}
-
-.streaming-text {
-  opacity: 0.8;
-}
 
 /* ========== 分析內容 ========== */
 .analysis-content {
   line-height: 1.8;
+  animation: contentFadeIn 0.4s ease-out;
+}
+
+@keyframes contentFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .markdown-body {
-  font-size: 1.125rem; /* 18px - 最佳可讀性 */
-  line-height: 1.8; /* WCAG 建議 1.5-1.8 */
+  font-size: 0.9375rem; /* 15px */
+  line-height: 1.75;
   color: var(--text-primary);
-  max-width: 65ch; /* 最佳閱讀寬度 */
   letter-spacing: 0.01em;
   text-align: left; /* 覆蓋 #app 的 text-align: center */
+}
+
+/* 串流打字游標 */
+.markdown-body :deep(.writing-cursor) {
+  color: var(--peixuan-purple);
+  font-weight: 300;
+  animation: cursorBlink 0.8s step-end infinite;
+  user-select: none;
+}
+
+@keyframes cursorBlink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
 }
 
 /* ========== 段落 ========== */

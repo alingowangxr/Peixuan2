@@ -186,11 +186,8 @@ class UnifiedApiService {
       const cacheKey = this.generateCacheKey(birthInfo);
       const cached = this.getFromCache(cacheKey);
       if (cached) {
-        console.log('Returning cached calculation result');
         return cached;
       }
-
-      console.log('發送統一計算請求:', JSON.stringify(birthInfo, null, 2));
 
       const response = await axios.post<ApiResponse<CalculationResult>>(
         `${BASE_URL}/calculate`,
@@ -351,7 +348,6 @@ class UnifiedApiService {
       // Store in cache
       this.setCache(cacheKey, result);
 
-      console.log('統一計算成功完成');
       return result;
     } catch (error: any) {
       console.error('統一計算API錯誤:', error);
@@ -440,7 +436,6 @@ class UnifiedApiService {
    */
   clearCache(): void {
     this.cache.clear();
-    console.log('Cache cleared');
   }
 
   /**

@@ -158,7 +158,6 @@ export class AgenticGeminiService {
     this.maxRetries = maxRetries;
     this.maxIterations = maxIterations;
     this.fallbackService = fallbackService;
-    console.log('[AgenticGemini] Initialized with model:', model);
   }
 
   /**
@@ -170,7 +169,6 @@ export class AgenticGeminiService {
    * @returns Observation string
    */
   private async executeTool(functionName: string, calculationResult: CalculationResult, locale = 'zh-TW'): Promise<string> {
-    console.log(`[AgenticGemini] Executing tool: ${functionName}`);
 
     switch (functionName) {
       case 'get_bazi_profile':
@@ -691,8 +689,6 @@ export class AgenticGeminiService {
     const encoder = new TextEncoder();
     const self = this;
 
-    console.log(`[AgenticGemini] generateDailyInsight called with locale: ${locale}`);
-
     return new ReadableStream({
       async start(controller) {
         // Analytics tracking state
@@ -709,7 +705,6 @@ export class AgenticGeminiService {
         }> = [];
 
         try {
-          console.log(`[AgenticGemini] Stream started, locale: ${locale}`);
 
           // Send memory metadata event first (if available)
           if (options?.hasMemoryContext && options?.memoryReference) {
@@ -721,10 +716,6 @@ export class AgenticGeminiService {
               }
             })}\n\n`;
             controller.enqueue(encoder.encode(metadataEvent));
-            console.log('[AgenticGemini] Memory metadata sent:', {
-              hasMemoryContext: true,
-              memoryReference: options.memoryReference
-            });
           }
 
           // Initialize conversation history
@@ -735,7 +726,6 @@ export class AgenticGeminiService {
 
           // System prompt for ReAct agent
           const systemPrompt = self.buildSystemPrompt(locale, historyContext);
-          console.log(`[AgenticGemini] System prompt generated (first 100 chars): ${systemPrompt.substring(0, 100)}`);
 
           // User's question (no label needed - system prompt already sets the context)
           conversationHistory.push({
@@ -748,7 +738,6 @@ export class AgenticGeminiService {
 
           while (iteration < self.maxIterations) {
             iteration++;
-            console.log(`[AgenticGemini] ReAct iteration ${iteration}/${self.maxIterations}, locale: ${locale}`);
 
             // Send status update with locale-specific message
             const thinkingMsg = locale === 'zh-TW'
@@ -772,8 +761,6 @@ export class AgenticGeminiService {
                  error.message.toLowerCase().includes('unavailable'));
 
               if (shouldFallback && self.fallbackService) {
-                console.log('[AgenticGemini] Gemini API error detected, switching to Azure fallback');
-                console.log('[AgenticGemini] Error type:', error instanceof Error ? error.message : String(error));
 
                 // Mark fallback usage
                 usedFallback = true;
@@ -798,7 +785,6 @@ export class AgenticGeminiService {
                     controller.enqueue(value);
                   }
                   controller.close();
-                  console.log('[AgenticGemini] Successfully completed with Azure fallback');
 
                   // Log analytics for fallback scenario
                   self.logAnalytics(options?.chartId || calculationResult.input?.chartId, question, finalAnswer, true, usedFallback, fallbackReason, startTime, steps, options);
@@ -819,7 +805,6 @@ export class AgenticGeminiService {
 
             if (functionCalls && functionCalls.length > 0) {
               // Execute function calls and add responses
-              console.log(`[AgenticGemini] Executing ${functionCalls.length} function calls`);
 
               // Send action update with locale-specific message
               const separator = locale === 'zh-TW' ? '、' : ', ';
@@ -909,7 +894,6 @@ export class AgenticGeminiService {
               const text = self.extractText(response);
               if (text) {
                 finalAnswer = text;
-                console.log(`[AgenticGemini] Final answer received`);
 
                 // Send final answer
                 const chunks = self.splitIntoChunks(text, 50);
@@ -953,7 +937,6 @@ export class AgenticGeminiService {
             if (errMsg.includes('429') || errMsg.includes('503') || errMsg.includes('500') ||
                 errMsg.includes('quota') || errMsg.includes('resource has been exhausted') ||
                 errMsg.includes('unavailable')) {
-              console.log('[AgenticGemini] Gemini API error in stream, propagating for potential fallback');
               controller.error(error);
               return;
             }
@@ -1208,7 +1191,6 @@ Guidelines:
       }
     };
 
-    console.log('[AgenticGemini] Calling Gemini API:', url.replace(this.apiKey, '***'));
     // console.log('[AgenticGemini] Request body:', JSON.stringify(requestBody, null, 2)); // Disabled for production
 
     for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
@@ -1221,8 +1203,6 @@ Guidelines:
           body: JSON.stringify(requestBody)
         });
 
-        console.log('[AgenticGemini] Response status:', response.status);
-
         if (!response.ok) {
           const errorText = await response.text();
           console.error('[AgenticGemini] API error response:', errorText);
@@ -1230,7 +1210,6 @@ Guidelines:
         }
 
         const responseText = await response.text();
-        console.log('[AgenticGemini] Response text:', responseText.substring(0, 100));
 
         // Parse JSON safely
         let data;
@@ -1302,7 +1281,6 @@ Guidelines:
 
         // Skip if this is a JSON object with thought/action fields
         if (this.isReActReasoningStep(text)) {
-          console.log('[AgenticGemini] Skipping ReAct reasoning step:', text.substring(0, 50));
           continue;
         }
 
@@ -1419,13 +1397,11 @@ Guidelines:
     const isAnalyticsEnabled = options?.env?.ENABLE_ANALYTICS_LOGGING === 'true';
 
     if (!isAnalyticsEnabled) {
-      console.log('[AgenticGemini] Analytics logging disabled (ENABLE_ANALYTICS_LOGGING != "true")');
       return;
     }
 
     // Check if we have required dependencies
     if (!options?.env?.DB || !options?.ctx) {
-      console.log('[AgenticGemini] Analytics logging skipped (missing env.DB or ctx)');
       return;
     }
 
@@ -1454,7 +1430,6 @@ Guidelines:
             steps
           });
 
-          console.log('[AgenticGemini] Analytics logged successfully');
         } catch (error) {
           // Silent failure - analytics should never break the main flow
           console.error('[AgenticGemini] Analytics logging error (non-blocking):', error);

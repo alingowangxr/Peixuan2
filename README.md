@@ -1,6 +1,6 @@
 # 佩璇 (Peixuan) - 智慧命理分析平台
 
-![Version](https://img.shields.io/badge/version-1.3.1-blue.svg)
+![Version](https://img.shields.io/badge/version-1.4.0-blue.svg)
 ![License](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg)
 ![Vue](https://img.shields.io/badge/Vue.js-3.5-4FC08D.svg)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6.svg)
@@ -25,7 +25,7 @@
 - **主引擎**：Google Gemini 3.0 Flash Preview
 - **備援引擎**：Azure OpenAI GPT-4.1 Mini（429/503/500/timeout 自動降級）
 - **Agentic AI 每日一問**：ReAct 模式 + Function Calling，5 個專業工具，最多 8 輪推理
-- **SSE 串流回應**：Server-Sent Events 即時顯示分析內容
+- **SSE 串流回應**：Server-Sent Events 即時顯示分析內容，含打字游標動畫；前端以 `\n\n` 事件邊界緩衝，防止 TCP 封包切割導致段落遺失
 - **D1 快取策略**：同日快取一致性，降低 API 呼叫成本
 
 ### Edge-First 架構
@@ -64,6 +64,7 @@
 | Vue I18n 9.x | 國際化 (zh_TW / en) |
 | Axios 1.9+ | HTTP 客戶端 |
 | marked 17.x | Markdown 渲染 |
+| DOMPurify 3.x | XSS 防護（sanitize marked 輸出） |
 
 ### 開發工具
 | 工具 | 版本 |
@@ -155,7 +156,7 @@ Peixuan/
 │   │   │   ├── useDailyQuestion.ts    # 每日問答狀態
 │   │   │   └── useDisplayMode.ts      # 顯示模式
 │   │   ├── services/
-│   │   │   ├── apiService.ts          # Axios HTTP 客戶端
+│   │   │   ├── apiService.ts          # 型別重新匯出（向後相容）
 │   │   │   └── unifiedApiService.ts   # 統一 API + 欄位映射
 │   │   ├── router/                    # Vue Router 配置
 │   │   ├── i18n/locales/              # 語言檔 (zh_TW, en)
@@ -336,13 +337,15 @@ cd peixuan-worker && npx vitest run src/calculation/bazi/__tests__/tenGods.test.
 |------|------|
 | 多供應商 AI 降級 | Gemini → Azure 自動切換 (429/503/500/timeout) |
 | Agentic ReAct | 每日問答 Function Calling + 多輪推理（最多 8 輪） |
-| SSE 串流 | 所有 AI 回應為即時串流，含快取模擬串流 |
+| SSE 串流 | 所有 AI 回應為即時串流；Gemini JSON array 以 15ms 間隔重播，含打字游標動畫 |
+| SSE 安全解析 | 前端以 `\n\n` 為事件邊界緩衝跨 chunk 資料，防止 TCP 切割導致段落遺失 |
 | 圖論四化分析 | 有向圖建模 + DFS 環路檢測 + 度數中心性 |
 | 八字統一委託 | 四柱 + 十神全面委託 `lunar-typescript`，`lunarAdapter.ts` 為唯一橋接層 |
 | 真太陽時校正 | 經度校正 `(L_local - 120) x 4 分鐘`，標準子午線 120°E |
 | 每日一致性快取 | 同一天快取結果永遠回傳，強制刷新無效 |
 | 零影響 Analytics | `ctx.waitUntil()` 非同步寫入，不影響回應速度 |
 | 匿名持久化 | localStorage 保持匿名使用者命盤跨會話 |
+| XSS 防護 | DOMPurify sanitize 所有 marked.js HTML 輸出 |
 | 人設驅動 AI | 佩璇角色設定 + 安全規則 + token 預算分配 |
 
 ---
