@@ -116,51 +116,49 @@ export function useDailyQuestion(chartId: string) {
 
       // eslint-disable-next-line no-undef
       const decoder = new TextDecoder();
+      // Buffer incomplete SSE events across TCP chunks (\n\n is the event delimiter).
+      let sseBuffer = '';
 
-      // Stream response chunks and accumulate
-      // The watcher in DailyQuestionPanel will split this into chat bubbles
       while (true) {
         const { done, value } = await reader.read();
         if (done) {
           break;
         }
 
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\n');
+        sseBuffer += decoder.decode(value, { stream: true });
+        const events = sseBuffer.split('\n\n');
+        sseBuffer = events.pop() ?? '';
 
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const data = JSON.parse(line.slice(6));
+        for (const event of events) {
+          const line = event.trim();
+          if (!line.startsWith('data: ')) continue;
 
-              // Handle memory metadata events
-              if (data.type === 'meta' && data.data) {
-                if (data.data.hasMemoryContext) {
-                  hasMemoryContext.value = true;
-                  memoryReference.value = data.data.memoryReference || '';
-                  if (import.meta.env.DEV) {
-                    console.log('[useDailyQuestion] Memory metadata received:', {
-                      hasMemoryContext: hasMemoryContext.value,
-                      memoryReference: memoryReference.value,
-                    });
-                  }
+          try {
+            const data = JSON.parse(line.slice(6));
+
+            if (data.type === 'meta' && data.data) {
+              if (data.data.hasMemoryContext) {
+                hasMemoryContext.value = true;
+                memoryReference.value = data.data.memoryReference || '';
+                if (import.meta.env.DEV) {
+                  console.log('[useDailyQuestion] Memory metadata received:', {
+                    hasMemoryContext: hasMemoryContext.value,
+                    memoryReference: memoryReference.value,
+                  });
                 }
-              } else if (data.state) {
-                // Handle state updates from agentic backend
-                currentStatus.value = data.state;
-              } else if (data.text) {
-                // Handle text content chunks
-                response.value += data.text;
-              } else if (data.content) {
-                // Handle content updates
-                response.value += data.content;
               }
-            } catch {
-              // Handle plain text responses (non-JSON)
-              const textContent = line.slice(6);
-              if (textContent && textContent !== '[DONE]') {
-                response.value += textContent;
-              }
+            } else if (data.state) {
+              currentStatus.value = data.state;
+            } else if (data.text) {
+              response.value += data.text;
+            } else if (data.content) {
+              response.value += data.content;
+            }
+          } catch {
+            // Non-JSON plain text fallback
+            const textContent = line.slice(6);
+            if (textContent && textContent !== '[DONE]') {
+              response.value += textContent;
             }
           }
         }

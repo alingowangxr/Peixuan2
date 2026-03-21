@@ -19,7 +19,6 @@ export async function processAzureStream(
   const decoder = new TextDecoder();
   const encoder = new TextEncoder();
   let fullText = '';
-  let chunkCount = 0;
 
   while (true) {
     const { done, value } = await reader.read();
@@ -27,7 +26,6 @@ export async function processAzureStream(
       break;
     }
 
-    chunkCount++;
     const text = decoder.decode(value, { stream: true });
     if (text) {
       fullText += text;
@@ -55,7 +53,6 @@ export async function processGeminiStream(
   const decoder = new TextDecoder();
   const encoder = new TextEncoder();
   let buffer = '';
-  let chunkCount = 0;
 
   // Step 1: Accumulate entire buffer
   while (true) {
@@ -64,7 +61,6 @@ export async function processGeminiStream(
       break;
     }
 
-    chunkCount++;
     buffer += decoder.decode(value, { stream: true });
   }
 
@@ -134,7 +130,6 @@ export async function accumulateStreamBuffer(
   decoder: TextDecoder
 ): Promise<string> {
   let buffer = '';
-  let chunkCount = 0;
 
   while (true) {
     const { done, value } = await reader.read();
@@ -142,7 +137,6 @@ export async function accumulateStreamBuffer(
       break;
     }
 
-    chunkCount++;
     buffer += decoder.decode(value, { stream: true });
   }
 

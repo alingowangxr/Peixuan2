@@ -25,11 +25,7 @@ const { t, locale } = useI18n();
 // 分析類型：personality 或 fortune
 const analysisType = computed(() => route.name as 'personality' | 'fortune');
 
-// 動態國際化鍵前綴
-const i18nPrefix = computed(() => analysisType.value);
-
 const analysisText = ref('');
-const displayedText = ref('');
 const isLoading = ref(true);
 const hasContent = ref(false); // true once first meaningful text arrives
 const error = ref<string | null>(null);
@@ -62,9 +58,9 @@ const getApiEndpoints = () => {
 
 // Rendered HTML with an inline blinking cursor during streaming
 const renderedHtml = computed(() => {
-  if (!displayedText.value) return '';
+  if (!analysisText.value) return '';
 
-  const sanitized = parseReportMarkdown(displayedText.value);
+  const sanitized = parseReportMarkdown(analysisText.value);
 
   if (!isLoading.value || !hasContent.value) return sanitized;
 
@@ -107,19 +103,18 @@ const checkCache = async (chartId: string): Promise<boolean> => {
 };
 
 const startStreaming = async () => {
-  stopStreaming(); // Ensure any previous stream is closed
+  stopStreaming();
 
-  analysisText.value = ''; // Clear previous content
-  displayedText.value = ''; // Clear displayed text
-  error.value = null; // Clear previous errors
-  isLoading.value = true; // Set loading state
-  hasContent.value = false; // Reset content flag
-  progress.value = 0; // Reset progress
+  analysisText.value = '';
+  error.value = null;
+  isLoading.value = true;
+  hasContent.value = false;
+  progress.value = 0;
 
   const { chartId } = chartStore;
 
   if (!chartId) {
-    error.value = t(`${i18nPrefix.value}.error_no_chart`);
+    error.value = t(`${analysisType.value}.error_no_chart`);
     isLoading.value = false;
     return;
   }
@@ -127,11 +122,11 @@ const startStreaming = async () => {
   // Check cache first
   const hasCached = await checkCache(chartId);
   loadingMessage.value = hasCached
-    ? t(`${i18nPrefix.value}.loading_cached`)
-    : t(`${i18nPrefix.value}.loading_message`);
+    ? t(`${analysisType.value}.loading_cached`)
+    : t(`${analysisType.value}.loading_message`);
   loadingHint.value = hasCached
-    ? t(`${i18nPrefix.value}.loading_hint_cached`)
-    : t(`${i18nPrefix.value}.loading_hint`);
+    ? t(`${analysisType.value}.loading_hint_cached`)
+    : t(`${analysisType.value}.loading_hint`);
 
   // Use fetch with streaming instead of EventSource to access headers
   const { origin } = window.location;
@@ -192,7 +187,6 @@ const startStreaming = async () => {
 
       if (data.text && !loadingPrefixes.includes(data.text)) {
         analysisText.value += data.text;
-        displayedText.value = analysisText.value;
         if (!hasContent.value && analysisText.value.trim().length > 0) {
           hasContent.value = true;
         }
@@ -227,7 +221,7 @@ const startStreaming = async () => {
     }
   } catch (err) {
     console.error('[SSE] Connection error:', err);
-    error.value = t(`${i18nPrefix.value}.error_connection`);
+    error.value = t(`${analysisType.value}.error_connection`);
     isLoading.value = false;
   }
 };
@@ -303,9 +297,8 @@ const setupScrollAnimations = () => {
   });
 };
 
-// Watch for displayedText changes to setup animations for new content
-watch(displayedText, () => {
-  if (displayedText.value) {
+watch(analysisText, () => {
+  if (analysisText.value) {
     nextTick(() => {
       setupScrollAnimations();
     });
@@ -371,14 +364,14 @@ onUnmounted(() => {
                   "
                   width="48"
                   role="img"
-                  :aria-label="$t(`${i18nPrefix}.title`)"
+                  :aria-label="$t(`${analysisType}.title`)"
                 />
               </div>
               <div class="header-text">
                 <p class="header-subtitle">
-                  {{ $t(`${i18nPrefix}.subtitle`) }}
+                  {{ $t(`${analysisType}.subtitle`) }}
                 </p>
-                <h1 class="header-title">{{ $t(`${i18nPrefix}.title`) }}</h1>
+                <h1 class="header-title">{{ $t(`${analysisType}.title`) }}</h1>
               </div>
             </div>
 
@@ -387,7 +380,6 @@ onUnmounted(() => {
 
             <!-- 分析內容 — 串流期間即時顯示 -->
             <div v-if="hasContent || !isLoading" class="analysis-content">
-              <!-- Markdown 渲染（游標已內嵌於 renderedHtml 中） -->
               <!-- eslint-disable-next-line vue/no-v-html -->
               <div
                 class="markdown-body"
@@ -419,7 +411,7 @@ onUnmounted(() => {
               />
               <h4 class="whisper-title">佩璇的悄悄話</h4>
               <div class="whisper-text">
-                {{ $t(`${i18nPrefix}.whisper`) }}
+                {{ $t(`${analysisType}.whisper`) }}
               </div>
             </div>
 
