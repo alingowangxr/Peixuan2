@@ -18,10 +18,7 @@ import { useStreamingHeight } from '@/composables/useStreamingHeight';
 // Phase 3: Intersection Observer for scroll-triggered animations
 let intersectionObserver: IntersectionObserver | null = null;
 
-// Phase 1: Smooth height animation during SSE streaming
 const markdownBodyRef = ref<HTMLElement | null>(null);
-const containerWidth = ref(0);
-let resizeObserver: ResizeObserver | null = null;
 
 const router = useRouter();
 const route = useRoute();
@@ -62,20 +59,14 @@ const getApiEndpoints = () => {
   };
 };
 
-// Phase 1: pretext-based height estimation for smooth streaming expansion
-const { estimatedHeightPx } = useStreamingHeight(
-  analysisText,
-  containerWidth,
-  isLoading,
-);
+const { estimatedHeightPx } = useStreamingHeight(analysisText, markdownBodyRef, isLoading);
 
-// Applied to .markdown-body via :style — grows smoothly via CSS transition
-const minHeightStyle = computed(() => {
-  if (!isLoading.value || !hasContent.value || estimatedHeightPx.value === 0) {
-    return {};
-  }
-  return { minHeight: `${estimatedHeightPx.value}px` };
-});
+const EMPTY_STYLE = {} as const;
+const minHeightStyle = computed(() =>
+  isLoading.value && hasContent.value && estimatedHeightPx.value > 0
+    ? { minHeight: `${estimatedHeightPx.value}px` }
+    : EMPTY_STYLE,
+);
 
 // Rendered HTML with an inline blinking cursor during streaming
 const renderedHtml = computed(() => {
@@ -327,20 +318,6 @@ watch(analysisText, () => {
   }
 });
 
-// Phase 1: Measure container width once the markdown body is first rendered,
-// then keep it updated via ResizeObserver (handles window resize / sidebar collapse).
-watch(hasContent, (visible) => {
-  if (!visible) return;
-  nextTick(() => {
-    if (!markdownBodyRef.value) return;
-    containerWidth.value = markdownBodyRef.value.offsetWidth;
-    resizeObserver = new ResizeObserver((entries) => {
-      containerWidth.value = Math.round(entries[0].contentRect.width);
-    });
-    resizeObserver.observe(markdownBodyRef.value);
-  });
-});
-
 onMounted(() => {
   // startStreaming is now handled by the immediate watcher, so this can be empty
   // or used for other non-streaming related on-mount setup.
@@ -349,12 +326,6 @@ onMounted(() => {
 
 onUnmounted(() => {
   stopStreaming(); // Ensure stream is closed when component is unmounted
-
-  // Phase 1: Cleanup ResizeObserver
-  if (resizeObserver) {
-    resizeObserver.disconnect();
-    resizeObserver = null;
-  }
 
   // Phase 3: Cleanup Intersection Observer
   if (intersectionObserver) {
