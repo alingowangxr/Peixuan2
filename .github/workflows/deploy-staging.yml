@@ -1,14 +1,30 @@
 name: Deploy to Cloudflare Workers (Staging)
 
 on:
-  push:
-    branches: [staging]
   workflow_dispatch:
+    inputs:
+      confirm_deploy:
+        description: '確認部署到 Staging（輸入 yes 才會執行）'
+        required: true
+        default: 'no'
 
 jobs:
+  check-confirmation:
+    runs-on: ubuntu-latest
+    name: Check Deploy Confirmation
+    steps:
+      - name: Verify confirm_deploy input
+        run: |
+          if [ "${{ github.event.inputs.confirm_deploy }}" != "yes" ]; then
+            echo "::error::部署未確認。請將 confirm_deploy 設為 'yes' 才能執行部署。"
+            exit 1
+          fi
+          echo "確認通過，開始部署流程。"
+
   build-frontend:
     runs-on: ubuntu-latest
     name: Build Frontend
+    needs: check-confirmation
     steps:
       - uses: actions/checkout@v4
 
