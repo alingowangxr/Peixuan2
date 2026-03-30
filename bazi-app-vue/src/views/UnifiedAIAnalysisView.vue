@@ -13,9 +13,15 @@ import QuickSetupForm from '@/components/QuickSetupForm.vue';
 import AnalysisSkeleton from '@/components/AnalysisSkeleton.vue';
 import CacheIndicator from '@/components/CacheIndicator.vue';
 import { Icon } from '@iconify/vue';
+import { useStreamingHeight } from '@/composables/useStreamingHeight';
 
 // Phase 3: Intersection Observer for scroll-triggered animations
 let intersectionObserver: IntersectionObserver | null = null;
+
+// Phase 1: Smooth height animation during SSE streaming
+const markdownBodyRef = ref<HTMLElement | null>(null);
+const containerWidth = ref(0);
+let resizeObserver: ResizeObserver | null = null;
 
 const router = useRouter();
 const route = useRoute();
@@ -56,6 +62,21 @@ const getApiEndpoints = () => {
   };
 };
 
+// Phase 1: pretext-based height estimation for smooth streaming expansion
+const { estimatedHeightPx } = useStreamingHeight(
+  analysisText,
+  containerWidth,
+  isLoading,
+);
+
+// Applied to .markdown-body via :style — grows smoothly via CSS transition
+const minHeightStyle = computed(() => {
+  if (!isLoading.value || !hasContent.value || estimatedHeightPx.value === 0) {
+    return {};
+  }
+  return { minHeight: `${estimatedHeightPx.value}px` };
+});
+
 // Rendered HTML with an inline blinking cursor during streaming
 const renderedHtml = computed(() => {
   if (!analysisText.value) return '';
@@ -66,8 +87,9 @@ const renderedHtml = computed(() => {
 
   // Insert the cursor before the last closing block tag so it appears
   // inline with the last sentence, not floating below the paragraph.
+  // Covers p, li, headings, blockquote, and table cells (td/th).
   const cursor = '<span class="writing-cursor" aria-hidden="true">▋</span>';
-  const lastClose = sanitized.match(/(<\/(p|li|h[1-6]|blockquote)>)\s*$/);
+  const lastClose = sanitized.match(/(<\/(p|li|h[1-6]|blockquote|td|th)>)\s*$/);
   if (lastClose) {
     const idx = sanitized.lastIndexOf(lastClose[1]);
     return sanitized.slice(0, idx) + cursor + sanitized.slice(idx);
@@ -305,6 +327,20 @@ watch(analysisText, () => {
   }
 });
 
+// Phase 1: Measure container width once the markdown body is first rendered,
+// then keep it updated via ResizeObserver (handles window resize / sidebar collapse).
+watch(hasContent, (visible) => {
+  if (!visible) return;
+  nextTick(() => {
+    if (!markdownBodyRef.value) return;
+    containerWidth.value = markdownBodyRef.value.offsetWidth;
+    resizeObserver = new ResizeObserver((entries) => {
+      containerWidth.value = Math.round(entries[0].contentRect.width);
+    });
+    resizeObserver.observe(markdownBodyRef.value);
+  });
+});
+
 onMounted(() => {
   // startStreaming is now handled by the immediate watcher, so this can be empty
   // or used for other non-streaming related on-mount setup.
@@ -313,6 +349,12 @@ onMounted(() => {
 
 onUnmounted(() => {
   stopStreaming(); // Ensure stream is closed when component is unmounted
+
+  // Phase 1: Cleanup ResizeObserver
+  if (resizeObserver) {
+    resizeObserver.disconnect();
+    resizeObserver = null;
+  }
 
   // Phase 3: Cleanup Intersection Observer
   if (intersectionObserver) {
@@ -382,7 +424,9 @@ onUnmounted(() => {
             <div v-if="hasContent || !isLoading" class="analysis-content">
               <!-- eslint-disable-next-line vue/no-v-html -->
               <div
+                ref="markdownBodyRef"
                 class="markdown-body"
+                :style="minHeightStyle"
                 aria-live="polite"
                 v-html="renderedHtml"
               />
@@ -620,6 +664,14 @@ html.dark .error-card {
   color: var(--text-primary);
   letter-spacing: 0.01em;
   text-align: left; /* 覆蓋 #app 的 text-align: center */
+  /* Phase 1: smooth height expansion during SSE streaming */
+  transition: min-height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .markdown-body {
+    transition: none;
+  }
 }
 
 /* 串流打字游標 */

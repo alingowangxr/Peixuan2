@@ -15,6 +15,7 @@
     "analyze": "vite build --mode analyze"
   },
   "dependencies": {
+    "@chenglou/pretext": "^0.0.3",
     "@element-plus/icons-vue": "^2.3.1",
     "@iconify/vue": "^5.0.0",
     "@types/vue-i18n": "^7.0.0",
